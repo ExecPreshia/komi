@@ -22,6 +22,10 @@ type KomiState = {
     ingredients: Ingredient[],
     servings: number,
   ) => number;
+  addManualShoppingItem: (name: string) => void;
+  toggleShoppingItem: (id: string) => void;
+  removeShoppingItem: (id: string) => void;
+  removeCheckedShoppingItems: () => void;
 };
 
 export const useKomiStore = create<KomiState>()(
@@ -86,6 +90,40 @@ export const useKomiStore = create<KomiState>()(
         }));
         set({ shoppingList: [...get().shoppingList, ...additions] });
         return additions.length;
+      },
+      addManualShoppingItem: (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const list = get().shoppingList;
+        const item: ShoppingListItem = {
+          id: createId('shop'),
+          name: trimmed,
+          quantity: null,
+          unit: null,
+          recipeId: null,
+          recipeTitle: null,
+          isChecked: false,
+          createdAt: new Date().toISOString(),
+          sortOrder: list.length,
+        };
+        set({ shoppingList: [...list, item] });
+      },
+      toggleShoppingItem: (id) => {
+        set({
+          shoppingList: get().shoppingList.map((item) =>
+            item.id === id ? { ...item, isChecked: !item.isChecked } : item,
+          ),
+        });
+      },
+      removeShoppingItem: (id) => {
+        set({
+          shoppingList: get().shoppingList.filter((item) => item.id !== id),
+        });
+      },
+      removeCheckedShoppingItems: () => {
+        set({
+          shoppingList: get().shoppingList.filter((item) => !item.isChecked),
+        });
       },
     }),
     {
