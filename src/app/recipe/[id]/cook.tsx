@@ -39,18 +39,25 @@ export default function CookingModeScreen() {
   const servings = Math.max(1, Number(servingsParam) || recipe?.baseServings || 1);
   const [index, setIndex] = useState(0);
   const [remaining, setRemaining] = useState<TimerMap>({});
+  const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
   const indexRef = useRef(0);
+  const pausedRef = useRef(pausedIds);
   indexRef.current = index;
+  pausedRef.current = pausedIds;
 
   useEffect(() => {
     setIndex(0);
     setRemaining({});
+    setPausedIds(new Set());
   }, [recipe?.id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setRemaining((current) => {
-        const activeKeys = Object.keys(current).filter((key) => current[key] > 0);
+        const paused = pausedRef.current;
+        const activeKeys = Object.keys(current).filter(
+          (key) => current[key] > 0 && !paused.has(key),
+        );
         if (activeKeys.length === 0) return current;
         const next = { ...current };
         for (const key of activeKeys) {
@@ -113,13 +120,18 @@ export default function CookingModeScreen() {
     return Object.prototype.hasOwnProperty.call(remaining, stepId);
   }
 
-  function isTimerRunning(stepId: string) {
+  function isTimerPaused(stepId: string) {
+    return pausedIds.has(stepId);
+  }
+
+  /** Previous peek expands while a timer is in progress (running or paused). */
+  function isTimerActive(stepId: string) {
     return hasTimerStarted(stepId) && (remaining[stepId] ?? 0) > 0;
   }
 
-  /** Nearest previous step with a still-running timer (Figma exception for peek height). */
+  /** Nearest previous step with an in-progress timer (Figma exception for peek height). */
   const timerPrevious =
-    [...steps.slice(0, index)].reverse().find((step) => isTimerRunning(step.id)) ?? null;
+    [...steps.slice(0, index)].reverse().find((step) => isTimerActive(step.id)) ?? null;
 
   const topPeekStep = timerPrevious ?? previous;
   const topPeekExpanded = Boolean(timerPrevious);
@@ -132,6 +144,47 @@ export default function CookingModeScreen() {
       ...current,
       [step.id]: step.timerSeconds!,
     }));
+    setPausedIds((current) => {
+      const next = new Set(current);
+      next.delete(step.id);
+      return next;
+    });
+  }
+
+  function togglePauseTimer(step: Step) {
+    if (!hasTimerStarted(step.id)) return;
+    if ((remaining[step.id] ?? 0) <= 0) {
+      if (!step.timerSeconds) return;
+      setRemaining((current) => ({
+        ...current,
+        [step.id]: step.timerSeconds!,
+      }));
+      setPausedIds((current) => {
+        const next = new Set(current);
+        next.delete(step.id);
+        return next;
+      });
+      return;
+    }
+    setPausedIds((current) => {
+      const next = new Set(current);
+      if (next.has(step.id)) next.delete(step.id);
+      else next.add(step.id);
+      return next;
+    });
+  }
+
+  function resetTimer(step: Step) {
+    if (!step.timerSeconds || step.timerSeconds <= 0) return;
+    setRemaining((current) => ({
+      ...current,
+      [step.id]: step.timerSeconds!,
+    }));
+    setPausedIds((current) => {
+      const next = new Set(current);
+      next.add(step.id);
+      return next;
+    });
   }
 
   function quitCooking() {
@@ -264,6 +317,32 @@ export default function CookingModeScreen() {
                     <Text style={styles.activeTimerLabel}>
                       {formatCountdown(remaining[current.id] ?? 0)}
                     </Text>
+                    <View style={styles.timerControls}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          isTimerPaused(current.id) || (remaining[current.id] ?? 0) <= 0
+                            ? 'Reprendre le minuteur'
+                            : 'Mettre en pause'
+                        }
+                        hitSlop={8}
+                        onPress={() => togglePauseTimer(current)}
+                        style={styles.timerControlButton}>
+                        {isTimerPaused(current.id) || (remaining[current.id] ?? 0) <= 0 ? (
+                          <PlayGlyph />
+                        ) : (
+                          <PauseGlyph />
+                        )}
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Réinitialiser le minuteur"
+                        hitSlop={8}
+                        onPress={() => resetTimer(current)}
+                        style={styles.timerControlButton}>
+                        <ResetGlyph />
+                      </Pressable>
+                    </View>
                   </View>
                 ) : (
                   <Pressable style={styles.startTimerButton} onPress={() => startTimer(current)}>
@@ -309,6 +388,61 @@ function TimerGlyph() {
         d="M12 4C7.58 4 4 7.58 4 12C4 16.42 7.58 20 12 20C16.42 20 20 16.42 20 12C20 7.58 16.42 4 12 4Z"
         stroke={Colors.accent}
         strokeWidth={1.8}
+      />
+    </Svg>
+  );
+}
+
+function PauseGlyph() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path d="M8 6V18" stroke={Colors.accent} strokeWidth={2.2} strokeLinecap="round" />
+      <Path d="M16 6V18" stroke={Colors.accent} strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function PlayGlyph() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8 6.5V17.5L18 12L8 6.5Z"
+        stroke={Colors.accent}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function ResetGlyph() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4.5 12A7.5 7.5 0 0 1 19 8.5"
+        stroke={Colors.accent}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M19.5 12A7.5 7.5 0 0 1 5 15.5"
+        stroke={Colors.accent}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M19 5.5V8.5H16"
+        stroke={Colors.accent}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 18.5V15.5H8"
+        stroke={Colors.accent}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -513,6 +647,22 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansBold,
     fontSize: 28,
     color: Colors.accent,
+    minWidth: 78,
+    textAlign: 'center',
+  },
+  timerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    marginLeft: Spacing.one,
+  },
+  timerControlButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.inputFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   startTimerButton: {
     flexDirection: 'row',
