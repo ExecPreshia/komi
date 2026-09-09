@@ -13,7 +13,8 @@ You are an expert React Native and Expo mobile developer.
 * Expo Router
 * React Native
 * TypeScript
-* NativeWind / Tailwind CSS
+* React Native StyleSheet
+* Typed design tokens in `src/constants/theme.ts`
 * Local-first architecture
 * No backend for the initial version
 
@@ -23,6 +24,23 @@ You are an expert React Native and Expo mobile developer.
 - App icon: `/assets/images/komi-app-icon.png`
 - Always reuse these existing assets when appropriate.
 - Do not recreate or replace them with text or generic icons.
+
+## Design references
+
+Local visual references are available in `.cursor/design-references/`.
+
+* `home.png` — Home / Recipes
+* `recipe-detail-ingredients.png` — Recipe Detail / Ingredients
+* `recipe-detail-preparation.png` — Recipe Detail / Preparation
+* `cooking-mode.png` — Cooking Mode
+
+Use these images as quick visual references during implementation.
+
+Figma remains the source of truth for the visual design and exact specifications.
+Use the Figma MCP when precise dimensions, spacing, typography, colors, or component details need to be verified.
+
+Do not modify or recreate the designs based on assumptions when the Figma source provides the required information.
+
 
 ## Coding Rules
 

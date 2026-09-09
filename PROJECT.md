@@ -19,6 +19,8 @@ The app interface is in French.
 
 ## Main user flow
 
+
+
 ### 1. Home — Recipes
 
 The Home screen is the default screen when opening the app.
@@ -215,6 +217,30 @@ Ingredients added manually are not assigned to a category by default.
 
 Manually added ingredients can later be moved into an existing recipe category if needed.
 
+### 7. Add a recipe
+
+The **"+"** action in the bottom navigation allows the user to create a new recipe manually.
+
+A recipe can contain:
+
+- Title
+- Photo
+- Cooking time
+- Difficulty
+- Cost level
+- Tags
+- Number of servings
+- Ingredients with quantities and units
+- Preparation steps
+- Optional sub-steps
+- Optional timers associated with preparation steps
+
+The user can reorder ingredients and preparation steps before saving the recipe.
+
+After saving, the recipe is added to **"Mes recettes"** and the user returns to the Home screen.
+
+The detailed interaction design for this flow will be defined separately when this feature is implemented.
+
 ## Design references
 
 The main UI and visual direction are already designed in Figma.
@@ -236,7 +262,7 @@ The three key screens already designed are:
 - Cooking Mode
 
 When implementing these screens, preserve the existing design rather than redesigning the UI.  
-  
+
 ##Product principles
 
 - **Cooking first:** Komi should feel like a cooking companion, not just a recipe database.
@@ -244,6 +270,8 @@ When implementing these screens, preserve the existing design rather than redesi
 - **Clear while cooking:** Cooking Mode should minimize cognitive load and make it easy to follow the recipe without losing track of the current step.
 - **Personal:** Recipes, tags, pins, shopping lists, and notes should adapt to the user's own cooking habits.
 - **Visual quality matters:** The implementation should respect the visual identity and interaction design established in Figma.
+
+
 
 ## Data model
 
