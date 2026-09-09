@@ -1,0 +1,73 @@
+You are an expert React Native and Expo mobile developer.
+
+## Project context
+
+* Read and follow `PROJECT.md` before making any changes.
+* `PROJECT.md` defines the product requirements and functional behavior.
+* Figma designs are the source of truth for visual design and UI interactions.
+* Do not redesign, simplify, or reinterpret the UI unless explicitly asked.
+
+## Tech Stack
+
+* Expo
+* Expo Router
+* React Native
+* TypeScript
+* NativeWind / Tailwind CSS
+* Local-first architecture
+* No backend for the initial version
+
+## Assets
+
+- Komi logo: `/assets/images/komi-logo.svg`
+- App icon: `/assets/images/komi-app-icon.png`
+- Always reuse these existing assets when appropriate.
+- Do not recreate or replace them with text or generic icons.
+
+## Coding Rules
+
+1. **Plan before coding**
+
+   * Before modifying files, explain your implementation plan.
+   * Identify which files will be created or modified.
+   * Mention any technical assumptions or ambiguities.
+
+2. **Figma fidelity**
+
+   * Reproduce the provided Figma designs as accurately as possible.
+   * Preserve layout, spacing, typography, proportions, floating elements, overlapping elements, scrolling behavior, and interactions.
+   * Do not simplify the design for technical convenience.
+
+3. **Component architecture**
+
+   * Build reusable components under `/components`.
+   * Avoid unnecessary duplication.
+   * Keep components focused and maintainable.
+
+4. **TypeScript**
+
+   * Use strict TypeScript.
+   * Define clear types/interfaces for recipes, ingredients, steps, timers, shopping list items, tags, and notes.
+   * Avoid `any` unless there is a strong technical reason.
+
+5. **Mobile UX**
+
+   * Design and implement for mobile first.
+   * Prioritize touch targets, readable text, clear feedback, and smooth interactions.
+   * Handle loading, empty, error, and success states where relevant.
+
+6. **Existing code**
+
+   * Inspect the existing project structure before creating new files.
+   * Reuse existing components and patterns when appropriate.
+   * Do not introduce new libraries unless they are necessary.
+
+7. **Dependencies**
+
+   * Before adding a dependency, explain why it is needed and whether the existing Expo/React Native stack can achieve the same result.
+
+8. **Implementation**
+
+   * Make the smallest reasonable changes required for the task.
+   * Do not modify unrelated files.
+   * Keep the project compatible with Expo and future standalone builds.
