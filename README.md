@@ -1,56 +1,57 @@
-# Welcome to your Expo app 👋
+# Komi - Mobile Recipe & Cooking Companion
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Komi is a thoughtful, user-centric mobile application designed to streamline home cooking. From managing personalized recipe collections to adjusting ingredient portions on the fly and guiding users through a distraction-free cooking mode, Komi brings modern product design principles into the kitchen.
 
-## Get started
+---
 
-1. Install dependencies
+## 🔑 Key Features
+
+- **Recipe Management:** Create, edit, and categorize custom recipes with rich metadata (prep time, difficulty, cost, and tags).
+
+- **Dynamic Portion Scaling:** Automatically recalculates ingredient quantities based on the number of servings needed.
+
+- **Interactive Cooking Mode:** Step-by-step full-screen view featuring step-linked ingredient pills, integrated timers, and screen keep-awake functionality.  
+(*my personnal favorite feature!*)
+
+- **Smart Shopping List:** Add missing ingredients directly from recipe view into an organized shopping list.
+
+- **Custom Design System:** Built from the ground up using custom Figma tokens and native styling.
+
+---
+
+## 🤖 AI-Assisted Development & Vibe Coding
+
+This application was designed in Figma and fully implemented using **Cursor** (AI-first code editor) to demonstrate the power of AI-assisted engineering for Product Designers.
+
+- **Figma to Code Pipeline:** Leveraged structured prompts and design system tokens to maintain strict visual fidelity from Figma components to React Native code.
+
+- **Architectural Direction:** Prompted and orchestrated the entire application flow, state management (Zustand), and system edge cases through Cursor.
+
+- **Rapid Prototyping:** Translated complex UX mechanics (dynamic portion scaling, stack-based cooking cards, screen wake locks) into production-ready React Native logic in record time.
+
+---
+
+## 📸 Screenshots
+
+| Home & Recettes | Fiche Recette | Mode Cuisine |
+
+
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Ensure you have Node.js installed and the **Expo Go** app on your iOS or Android device.
+
+### Installation
+
+1. **Clone the repository:**
 
    ```bash
-   npm install
-   ```
 
-2. Start the app
+   git clone [[https://github.com/YOUR_USERNAME/komi.git](https://github.com/YOUR_USERNAME/komi.git)](https://github.com/YOUR_USERNAME/komi.git](https://github.com/YOUR_USERNAME/komi.git))
 
-   ```bash
-   npx expo start
-   ```
+   cd komi
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
