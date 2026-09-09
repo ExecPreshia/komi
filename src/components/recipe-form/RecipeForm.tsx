@@ -1,15 +1,16 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   createEmptyIngredient,
@@ -21,25 +22,46 @@ import {
   sanitizeFormValues,
   validateRecipeForm,
 } from '@/components/recipe-form/form-model';
-import { Button } from '@/components/ui/Button';
 import { TagChip } from '@/components/ui/TagChip';
-import { TextField } from '@/components/ui/TextField';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import {
+  CameraIcon,
+  DifficultyDots,
+  DragHandleIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@/components/ui/form-icons';
+import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import type { CostLevel, Difficulty, Ingredient, Step } from '@/types/recipe';
-import { COST_LABELS, DIFFICULTY_LABELS, normalizeTag } from '@/utils/format';
+import { COST_LABELS, normalizeTag } from '@/utils/format';
 
 type RecipeFormProps = {
   initialValues: RecipeFormValues;
-  submitLabel: string;
+  submitLabel?: string;
   onSubmit: (values: RecipeFormValues) => void;
 };
 
-const DIFFICULTIES: Difficulty[] = ['facile', 'moyen', 'difficile'];
-const COSTS: CostLevel[] = ['abordable', 'modere', 'eleve'];
+const DIFFICULTIES: { value: Difficulty; dots: 1 | 2 | 3 }[] = [
+  { value: 'facile', dots: 1 },
+  { value: 'moyen', dots: 2 },
+  { value: 'difficile', dots: 3 },
+];
 
-export function RecipeForm({ initialValues, submitLabel, onSubmit }: RecipeFormProps) {
+const COSTS: CostLevel[] = ['abordable', 'modere', 'festif'];
+
+export function RecipeForm({
+  initialValues,
+  submitLabel = 'Enregistrer',
+  onSubmit,
+}: RecipeFormProps) {
+  const insets = useSafeAreaInsets();
   const [values, setValues] = useState<RecipeFormValues>(initialValues);
   const [tagDraft, setTagDraft] = useState('');
+  const [timeDraft, setTimeDraft] = useState(
+    initialValues.cookingTimeMinutes > 0 ? String(initialValues.cookingTimeMinutes) : '',
+  );
+  const [servingsDraft, setServingsDraft] = useState(
+    initialValues.baseServings > 0 ? String(initialValues.baseServings) : '',
+  );
 
   const namedIngredients = useMemo(
     () => values.ingredients.filter((item) => item.name.trim()),
@@ -68,11 +90,9 @@ export function RecipeForm({ initialValues, submitLabel, onSubmit }: RecipeFormP
   function addTag() {
     const tag = normalizeTag(tagDraft);
     if (!tag) return;
-    if (values.tags.includes(tag)) {
-      setTagDraft('');
-      return;
+    if (!values.tags.includes(tag)) {
+      update('tags', [...values.tags, tag]);
     }
-    update('tags', [...values.tags, tag]);
     setTagDraft('');
   }
 
@@ -90,429 +110,684 @@ export function RecipeForm({ initialValues, submitLabel, onSubmit }: RecipeFormP
     );
   }
 
+  function setStepPrimaryBody(step: Step, body: string) {
+    const subSteps =
+      step.subSteps.length === 0
+        ? [createEmptySubStep(0)]
+        : step.subSteps.map((sub, index) => (index === 0 ? { ...sub, body } : sub));
+    updateStep(step.id, { subSteps });
+  }
+
   function handleSubmit() {
-    const error = validateRecipeForm(values);
+    const nextValues: RecipeFormValues = {
+      ...values,
+      cookingTimeMinutes: Math.max(1, Number(timeDraft.replace(/[^0-9]/g, '')) || 0),
+      baseServings: Math.max(1, Number(servingsDraft.replace(/[^0-9]/g, '')) || 0),
+    };
+    const error = validateRecipeForm(nextValues);
     if (error) {
       Alert.alert('Recette incomplète', error);
       return;
     }
-    onSubmit(sanitizeFormValues(values));
+    onSubmit(sanitizeFormValues(nextValues));
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
-      <Section title="Informations">
-        <TextField
-          label="Titre"
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <FieldLabel text="Titre *" />
+        <TextInput
           value={values.title}
           onChangeText={(title) => update('title', title)}
-          placeholder="Ex : Japchae"
+          placeholder="Ex : Spaghetti bolognaise"
+          placeholderTextColor={Colors.textMuted}
+          style={styles.input}
         />
 
-        <View style={styles.photoBlock}>
-          <Text style={styles.label}>Photo</Text>
+        <FieldLabel text="Photo" />
+        <Pressable style={styles.photoTap} onPress={pickPhoto}>
           {values.photoUri ? (
-            <Image source={{ uri: values.photoUri }} style={styles.photo} contentFit="cover" />
+            <>
+              <Image source={{ uri: values.photoUri }} style={styles.photoImage} contentFit="cover" />
+              <Pressable
+                style={styles.photoClear}
+                onPress={() => update('photoUri', null)}
+                hitSlop={8}>
+                <Text style={styles.photoClearText}>Retirer</Text>
+              </Pressable>
+            </>
           ) : (
-            <View style={[styles.photo, styles.photoPlaceholder]}>
-              <Text style={styles.muted}>Aucune photo</Text>
+            <View style={styles.photoPlaceholder}>
+              <CameraIcon />
+              <Text style={styles.photoHint}>Appuyer pour ajouter une photo</Text>
             </View>
           )}
-          <View style={styles.row}>
-            <Button label="Choisir une photo" variant="ghost" onPress={pickPhoto} style={styles.flex} />
-            {values.photoUri ? (
-              <Button
-                label="Retirer"
-                variant="ghost"
-                onPress={() => update('photoUri', null)}
-                style={styles.flex}
-              />
-            ) : null}
+        </Pressable>
+
+        <View style={styles.metaRow}>
+          <View style={styles.metaField}>
+            <FieldLabel text="Temps (min)" />
+            <TextInput
+              value={timeDraft}
+              onChangeText={setTimeDraft}
+              placeholder="Ex : 30"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
+          </View>
+          <View style={styles.metaField}>
+            <FieldLabel text="Portions" />
+            <TextInput
+              value={servingsDraft}
+              onChangeText={setServingsDraft}
+              placeholder="Ex : 2"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
           </View>
         </View>
 
-        <TextField
-          label="Temps (minutes)"
-          value={String(values.cookingTimeMinutes)}
-          onChangeText={(text) => update('cookingTimeMinutes', Math.max(1, Number(text.replace(/[^0-9]/g, '')) || 1))}
-          keyboardType="number-pad"
-        />
-
-        <Text style={styles.label}>Difficulté</Text>
+        <FieldLabel text="Difficulté" />
         <View style={styles.choiceRow}>
-          {DIFFICULTIES.map((level) => (
-            <ChoiceChip
-              key={level}
-              label={DIFFICULTY_LABELS[level]}
-              selected={values.difficulty === level}
-              onPress={() => update('difficulty', level)}
-            />
-          ))}
+          {DIFFICULTIES.map((item) => {
+            const selected = values.difficulty === item.value;
+            return (
+              <Pressable
+                key={item.value}
+                onPress={() => update('difficulty', item.value)}
+                style={[styles.difficultyBox, selected && styles.difficultyBoxSelected]}>
+                <DifficultyDots level={item.dots} />
+              </Pressable>
+            );
+          })}
         </View>
 
-        <Text style={styles.label}>Coût</Text>
+        <FieldLabel text="Coût" />
         <View style={styles.choiceRow}>
-          {COSTS.map((level) => (
-            <ChoiceChip
-              key={level}
-              label={COST_LABELS[level]}
-              selected={values.costLevel === level}
-              onPress={() => update('costLevel', level)}
-            />
-          ))}
+          {COSTS.map((level) => {
+            const selected = values.costLevel === level;
+            return (
+              <Pressable
+                key={level}
+                onPress={() => update('costLevel', level)}
+                style={[styles.costChip, selected && styles.costChipSelected]}>
+                <Text style={[styles.costLabel, selected && styles.costLabelSelected]}>
+                  {COST_LABELS[level]}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <TextField
-          label="Portions"
-          value={String(values.baseServings)}
-          onChangeText={(text) => update('baseServings', Math.max(1, Number(text.replace(/[^0-9]/g, '')) || 1))}
-          keyboardType="number-pad"
-        />
-
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Ajouter à « Au menu »</Text>
-          <Switch
-            value={values.isPinned}
-            onValueChange={(isPinned) => update('isPinned', isPinned)}
-            trackColor={{ false: Colors.line, true: Colors.accent }}
-            thumbColor={Colors.white}
-          />
-        </View>
-      </Section>
-
-      <Section title="Tags">
-        <View style={styles.row}>
-          <TextField
+        <FieldLabel text="Tags" />
+        <View style={styles.tagRow}>
+          <TextInput
             value={tagDraft}
             onChangeText={setTagDraft}
-            placeholder="chaud, dessert…"
-            containerStyle={styles.flex}
+            placeholder="Ex : rapide, chaud, riz"
+            placeholderTextColor={Colors.textMuted}
+            style={[styles.input, styles.tagInput]}
             onSubmitEditing={addTag}
             returnKeyType="done"
           />
-          <Button label="Ajouter" variant="ghost" onPress={addTag} />
+          <Pressable accessibilityLabel="Ajouter un tag" style={styles.tagAdd} onPress={addTag}>
+            <PlusIcon color={Colors.white} size={18} />
+          </Pressable>
         </View>
-        <View style={styles.wrapChips}>
-          {values.tags.map((tag) => (
-            <TagChip
-              key={tag}
-              label={tag}
-              onRemove={() => update('tags', values.tags.filter((item) => item !== tag))}
-            />
-          ))}
-        </View>
-      </Section>
+        {values.tags.length > 0 ? (
+          <View style={styles.wrapChips}>
+            {values.tags.map((tag) => (
+              <TagChip
+                key={tag}
+                label={tag}
+                onRemove={() => update('tags', values.tags.filter((item) => item !== tag))}
+              />
+            ))}
+          </View>
+        ) : null}
 
-      <Section title="Ingrédients">
+        <Text style={styles.sectionTitle}>Ingrédients</Text>
         {values.ingredients.map((ingredient, index) => (
-          <View key={ingredient.id} style={styles.editorCard}>
-            <TextField
-              label="Nom"
-              value={ingredient.name}
-              onChangeText={(name) => updateIngredient(ingredient.id, { name })}
-              placeholder="Carottes"
-            />
-            <View style={styles.row}>
-              <TextField
-                label="Quantité"
-                value={ingredient.quantity == null ? '' : String(ingredient.quantity)}
-                onChangeText={(text) =>
-                  updateIngredient(ingredient.id, { quantity: parseOptionalNumber(text) })
-                }
-                keyboardType="decimal-pad"
-                containerStyle={styles.flex}
-              />
-              <TextField
-                label="Unité"
-                value={ingredient.unit ?? ''}
-                onChangeText={(unit) => updateIngredient(ingredient.id, { unit })}
-                placeholder="g, càs…"
-                containerStyle={styles.flex}
-              />
-            </View>
-            <TextField
-              label="Catégorie (optionnel)"
-              value={ingredient.category ?? ''}
-              onChangeText={(category) => updateIngredient(ingredient.id, { category })}
-              placeholder="Sauce"
-            />
-            <View style={styles.row}>
-              <Button
-                label="↑"
-                variant="ghost"
+          <View key={ingredient.id} style={styles.ingredientRow}>
+            <View style={styles.reorderCol}>
+              <Pressable
                 disabled={index === 0}
                 onPress={() => update('ingredients', moveItem(values.ingredients, index, -1))}
-              />
-              <Button
-                label="↓"
-                variant="ghost"
+                hitSlop={6}>
+                <DragHandleIcon color={index === 0 ? Colors.line : Colors.accent} />
+              </Pressable>
+              <Pressable
                 disabled={index === values.ingredients.length - 1}
                 onPress={() => update('ingredients', moveItem(values.ingredients, index, 1))}
-              />
-              <Button
-                label="Supprimer"
-                variant="ghost"
-                onPress={() =>
-                  update(
-                    'ingredients',
-                    values.ingredients.filter((item) => item.id !== ingredient.id),
-                  )
-                }
-              />
+                hitSlop={6}
+                style={styles.reorderDown}>
+                <Text
+                  style={[
+                    styles.reorderHint,
+                    index === values.ingredients.length - 1 && styles.reorderHintDisabled,
+                  ]}>
+                  ↓
+                </Text>
+              </Pressable>
             </View>
+            <View style={styles.ingredientFields}>
+              <FieldLabel text="Ingrédient *" />
+              <TextInput
+                value={ingredient.name}
+                onChangeText={(name) => updateIngredient(ingredient.id, { name })}
+                placeholder="Ex : Carottes"
+                placeholderTextColor={Colors.textMuted}
+                style={styles.input}
+              />
+              <View style={styles.qtyRow}>
+                <View style={styles.qtyField}>
+                  <FieldLabel text="Qté" />
+                  <TextInput
+                    value={ingredient.quantity == null ? '' : String(ingredient.quantity)}
+                    onChangeText={(text) =>
+                      updateIngredient(ingredient.id, { quantity: parseOptionalNumber(text) })
+                    }
+                    keyboardType="decimal-pad"
+                    placeholder="—"
+                    placeholderTextColor={Colors.textMuted}
+                    style={styles.input}
+                  />
+                </View>
+                <View style={styles.qtyField}>
+                  <FieldLabel text="Unité" />
+                  <TextInput
+                    value={ingredient.unit ?? ''}
+                    onChangeText={(unit) => updateIngredient(ingredient.id, { unit })}
+                    placeholder="g"
+                    placeholderTextColor={Colors.textMuted}
+                    style={styles.input}
+                  />
+                </View>
+              </View>
+            </View>
+            <Pressable
+              accessibilityLabel="Supprimer l'ingrédient"
+              onPress={() =>
+                update(
+                  'ingredients',
+                  values.ingredients.filter((item) => item.id !== ingredient.id),
+                )
+              }
+              style={styles.trashBtn}>
+              <TrashIcon />
+            </Pressable>
           </View>
         ))}
-        <Button
-          label="Ajouter un ingrédient"
-          variant="ghost"
+        <Pressable
+          style={styles.dashedAdd}
           onPress={() =>
             update('ingredients', [
               ...values.ingredients,
               createEmptyIngredient(values.ingredients.length),
             ])
-          }
-        />
-      </Section>
+          }>
+          <Text style={styles.dashedAddLabel}>+ Ajouter un ingrédient</Text>
+        </Pressable>
 
-      <Section title="Préparation">
-        {values.steps.map((step, index) => (
-          <View key={step.id} style={styles.editorCard}>
-            <TextField
-              label="Titre de l'étape"
-              value={step.title}
-              onChangeText={(title) => updateStep(step.id, { title })}
-              placeholder="CUISSON PÂTES"
-            />
-            <TextField
-              label="Minuteur (minutes, optionnel)"
-              value={step.timerSeconds == null ? '' : String(Math.round(step.timerSeconds / 60))}
-              onChangeText={(text) => {
-                const minutes = parseOptionalNumber(text);
-                updateStep(step.id, {
-                  timerSeconds: minutes == null ? null : Math.max(1, Math.round(minutes)) * 60,
-                });
-              }}
-              keyboardType="number-pad"
-            />
-
-            <Text style={styles.label}>Sous-étapes</Text>
-            {step.subSteps.map((sub, subIndex) => (
-              <View key={sub.id} style={styles.subStepRow}>
-                <TextField
-                  value={sub.body}
-                  onChangeText={(body) =>
-                    updateStep(step.id, {
-                      subSteps: step.subSteps.map((item) =>
-                        item.id === sub.id ? { ...item, body } : item,
-                      ),
-                    })
-                  }
-                  placeholder={`Sous-étape ${subIndex + 1}`}
-                  containerStyle={styles.flex}
+        <Text style={styles.sectionTitle}>Étapes</Text>
+        {values.steps.map((step, index) => {
+          const primaryBody = step.subSteps[0]?.body ?? '';
+          const extraSubSteps = step.subSteps.slice(1);
+          return (
+            <View key={step.id} style={styles.stepCard}>
+              <View style={styles.stepHeader}>
+                <View style={styles.reorderCol}>
+                  <Pressable
+                    disabled={index === 0}
+                    onPress={() => update('steps', moveItem(values.steps, index, -1))}
+                    hitSlop={6}>
+                    <DragHandleIcon color={index === 0 ? Colors.line : Colors.accent} />
+                  </Pressable>
+                  <Pressable
+                    disabled={index === values.steps.length - 1}
+                    onPress={() => update('steps', moveItem(values.steps, index, 1))}
+                    hitSlop={6}>
+                    <Text
+                      style={[
+                        styles.reorderHint,
+                        index === values.steps.length - 1 && styles.reorderHintDisabled,
+                      ]}>
+                      ↓
+                    </Text>
+                  </Pressable>
+                </View>
+                <TextInput
+                  value={step.title}
+                  onChangeText={(title) => updateStep(step.id, { title })}
+                  placeholder={`Étape ${index + 1}`}
+                  placeholderTextColor={Colors.textMuted}
+                  style={[styles.input, styles.stepTitleInput]}
                 />
-                <Button
-                  label="×"
-                  variant="ghost"
+                <Pressable
+                  accessibilityLabel="Supprimer l'étape"
                   onPress={() =>
-                    updateStep(step.id, {
-                      subSteps: step.subSteps.filter((item) => item.id !== sub.id),
-                    })
+                    update(
+                      'steps',
+                      values.steps.filter((item) => item.id !== step.id),
+                    )
                   }
-                />
+                  style={styles.trashBtn}>
+                  <TrashIcon />
+                </Pressable>
               </View>
-            ))}
-            <Button
-              label="Ajouter une sous-étape"
-              variant="ghost"
-              onPress={() =>
-                updateStep(step.id, {
-                  subSteps: [...step.subSteps, createEmptySubStep(step.subSteps.length)],
-                })
-              }
-            />
 
-            <Text style={styles.label}>Ingrédients liés (Cooking Mode)</Text>
-            {namedIngredients.length === 0 ? (
-              <Text style={styles.muted}>Ajoutez d’abord des ingrédients nommés.</Text>
-            ) : (
-              <View style={styles.wrapChips}>
-                {namedIngredients.map((ingredient) => {
-                  const selected = step.ingredientIds.includes(ingredient.id);
-                  return (
-                    <TagChip
-                      key={ingredient.id}
-                      label={ingredient.name}
-                      selected={selected}
-                      onPress={() =>
-                        updateStep(step.id, {
-                          ingredientIds: selected
-                            ? step.ingredientIds.filter((id) => id !== ingredient.id)
-                            : [...step.ingredientIds, ingredient.id],
-                        })
-                      }
-                    />
-                  );
-                })}
-              </View>
-            )}
+              <TextInput
+                value={primaryBody}
+                onChangeText={(body) => setStepPrimaryBody(step, body)}
+                placeholder="Décrivez cette étape... *"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                textAlignVertical="top"
+                style={[styles.input, styles.stepBody]}
+              />
 
-            <View style={styles.row}>
-              <Button
-                label="↑"
-                variant="ghost"
-                disabled={index === 0}
-                onPress={() => update('steps', moveItem(values.steps, index, -1))}
-              />
-              <Button
-                label="↓"
-                variant="ghost"
-                disabled={index === values.steps.length - 1}
-                onPress={() => update('steps', moveItem(values.steps, index, 1))}
-              />
-              <Button
-                label="Supprimer"
-                variant="ghost"
+              {extraSubSteps.map((sub, subIndex) => (
+                <View key={sub.id} style={styles.extraSubStep}>
+                  <TextInput
+                    value={sub.body}
+                    onChangeText={(body) =>
+                      updateStep(step.id, {
+                        subSteps: step.subSteps.map((item) =>
+                          item.id === sub.id ? { ...item, body } : item,
+                        ),
+                      })
+                    }
+                    placeholder={`Sous-étape ${subIndex + 2}`}
+                    placeholderTextColor={Colors.textMuted}
+                    style={[styles.input, styles.flex]}
+                  />
+                  <Pressable
+                    onPress={() =>
+                      updateStep(step.id, {
+                        subSteps: step.subSteps.filter((item) => item.id !== sub.id),
+                      })
+                    }>
+                    <TrashIcon size={16} />
+                  </Pressable>
+                </View>
+              ))}
+              <Pressable
                 onPress={() =>
-                  update(
-                    'steps',
-                    values.steps.filter((item) => item.id !== step.id),
-                  )
-                }
+                  updateStep(step.id, {
+                    subSteps:
+                      step.subSteps.length === 0
+                        ? [createEmptySubStep(0), createEmptySubStep(1)]
+                        : [...step.subSteps, createEmptySubStep(step.subSteps.length)],
+                  })
+                }>
+                <Text style={styles.addSubStep}>+ Ajouter une sous-étape</Text>
+              </Pressable>
+
+              <FieldLabel text="Ingrédients de l'étape" />
+              {namedIngredients.length === 0 ? (
+                <Text style={styles.helper}>
+                  Ajoutez d’abord des ingrédients pour les lier.
+                </Text>
+              ) : (
+                <View style={styles.wrapChips}>
+                  {namedIngredients.map((ingredient) => {
+                    const selected = step.ingredientIds.includes(ingredient.id);
+                    return (
+                      <TagChip
+                        key={ingredient.id}
+                        label={ingredient.name}
+                        selected={selected}
+                        onPress={() =>
+                          updateStep(step.id, {
+                            ingredientIds: selected
+                              ? step.ingredientIds.filter((id) => id !== ingredient.id)
+                              : [...step.ingredientIds, ingredient.id],
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </View>
+              )}
+
+              <FieldLabel text="Minuteur (optionnel)" />
+              <TextInput
+                value={formatTimerInput(step.timerSeconds)}
+                onChangeText={(text) => updateStep(step.id, { timerSeconds: parseTimerInput(text) })}
+                placeholder="0:00"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="numbers-and-punctuation"
+                style={[styles.input, styles.timerInput]}
               />
             </View>
-          </View>
-        ))}
-        <Button
-          label="Ajouter une étape"
-          variant="ghost"
-          onPress={() => update('steps', [...values.steps, createEmptyStep(values.steps.length)])}
-        />
-      </Section>
+          );
+        })}
+        <Pressable
+          style={styles.dashedAdd}
+          onPress={() =>
+            update('steps', [
+              ...values.steps,
+              {
+                ...createEmptyStep(values.steps.length),
+                title: `Étape ${values.steps.length + 1}`,
+              },
+            ])
+          }>
+          <Text style={styles.dashedAddLabel}>+ Ajouter une étape</Text>
+        </Pressable>
+      </ScrollView>
 
-      <Button label={submitLabel} onPress={handleSubmit} />
-    </ScrollView>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.three) }]}>
+        <Pressable style={styles.saveButton} onPress={handleSubmit}>
+          <Text style={styles.saveLabel}>{submitLabel}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
-function ChoiceChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.choiceChip, selected && styles.choiceChipSelected]}>
-      <Text style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>{label}</Text>
-    </Pressable>
-  );
+function FieldLabel({ text }: { text: string }) {
+  return <Text style={styles.fieldLabel}>{text}</Text>;
+}
+
+function formatTimerInput(seconds: number | null): string {
+  if (seconds == null || seconds <= 0) return '';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function parseTimerInput(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes(':')) {
+    const [m, s] = trimmed.split(':');
+    const minutes = Number(m.replace(/[^0-9]/g, '')) || 0;
+    const seconds = Number((s ?? '').replace(/[^0-9]/g, '')) || 0;
+    const total = minutes * 60 + seconds;
+    return total > 0 ? total : null;
+  }
+  const minutes = Number(trimmed.replace(/[^0-9]/g, ''));
+  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
 }
 
 const styles = StyleSheet.create({
-  scroll: {
+  root: {
     flex: 1,
     backgroundColor: Colors.primary,
   },
-  content: {
-    padding: Spacing.four,
-    gap: Spacing.five,
-    paddingBottom: Spacing.seven,
-  },
-  section: {
-    gap: Spacing.three,
-  },
-  sectionTitle: {
-    ...Typography.section,
-  },
-  label: {
-    ...Typography.label,
-  },
-  muted: {
-    ...Typography.caption,
-  },
-  photoBlock: {
-    gap: Spacing.two,
-  },
-  photo: {
-    width: '100%',
-    height: 180,
-    borderRadius: Radii.lg,
-  },
-  photoPlaceholder: {
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.two,
-  },
-  flex: {
+  scroll: {
     flex: 1,
   },
-  choiceRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  content: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.five,
     gap: Spacing.two,
   },
-  choiceChip: {
-    borderRadius: Radii.pill,
+  fieldLabel: {
+    marginTop: Spacing.two,
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: Colors.textMuted,
+  },
+  input: {
+    minHeight: 48,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.line,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    backgroundColor: Colors.white,
+    fontFamily: Fonts.body,
+    fontSize: 16,
+    color: Colors.text,
   },
-  choiceChipSelected: {
+  photoTap: {
+    minHeight: 160,
+    borderRadius: Radii.lg,
+    overflow: 'hidden',
+    backgroundColor: Colors.inputFill,
+  },
+  photoImage: {
+    width: '100%',
+    height: 180,
+  },
+  photoPlaceholder: {
+    minHeight: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+  },
+  photoHint: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  photoClear: {
+    position: 'absolute',
+    right: Spacing.three,
+    bottom: Spacing.three,
+    backgroundColor: Colors.white,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+  },
+  photoClearText: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 12,
+    color: Colors.text,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+  },
+  metaField: {
+    flex: 1,
+    gap: Spacing.two,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  difficultyBox: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  difficultyBoxSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: '#FBF1F0',
+  },
+  costChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.one,
+  },
+  costChipSelected: {
     backgroundColor: Colors.text,
     borderColor: Colors.text,
   },
-  choiceLabel: {
-    ...Typography.caption,
+  costLabel: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 13,
     color: Colors.text,
   },
-  choiceLabelSelected: {
+  costLabelSelected: {
     color: Colors.white,
   },
-  switchRow: {
+  tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
+    gap: Spacing.two,
+  },
+  tagInput: {
+    flex: 1,
+  },
+  tagAdd: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wrapChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+    marginTop: Spacing.one,
   },
-  editorCard: {
+  sectionTitle: {
+    marginTop: Spacing.five,
+    marginBottom: Spacing.two,
+    fontFamily: Fonts.sansBold,
+    fontSize: 22,
+    color: Colors.text,
+  },
+  ingredientRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
     backgroundColor: Colors.white,
     borderRadius: Radii.lg,
-    padding: Spacing.three,
-    gap: Spacing.three,
     borderWidth: 1,
     borderColor: Colors.line,
+    padding: Spacing.three,
+    marginBottom: Spacing.two,
   },
-  subStepRow: {
+  reorderCol: {
+    alignItems: 'center',
+    gap: 2,
+    paddingTop: Spacing.five,
+  },
+  reorderDown: {
+    marginTop: 2,
+  },
+  reorderHint: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 12,
+    color: Colors.accent,
+  },
+  reorderHintDisabled: {
+    color: Colors.line,
+  },
+  ingredientFields: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  qtyRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
     gap: Spacing.two,
+  },
+  qtyField: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  trashBtn: {
+    paddingTop: Spacing.five,
+    paddingHorizontal: Spacing.one,
+  },
+  dashedAdd: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.line,
+    borderRadius: Radii.lg,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.one,
+    marginBottom: Spacing.two,
+    backgroundColor: Colors.white,
+  },
+  dashedAddLabel: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  stepCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    padding: Spacing.three,
+    gap: Spacing.two,
+    marginBottom: Spacing.three,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  stepTitleInput: {
+    flex: 1,
+  },
+  stepBody: {
+    minHeight: 96,
+    backgroundColor: Colors.inputFill,
+    borderColor: Colors.inputFill,
+  },
+  extraSubStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  flex: {
+    flex: 1,
+  },
+  addSubStep: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 13,
+    color: Colors.accent,
+    marginBottom: Spacing.one,
+  },
+  helper: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+  timerInput: {
+    width: 96,
+    textAlign: 'center',
+    backgroundColor: Colors.inputFill,
+    borderColor: Colors.inputFill,
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.line,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.three,
+  },
+  saveButton: {
+    minHeight: 54,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveLabel: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 17,
+    color: Colors.white,
   },
 });

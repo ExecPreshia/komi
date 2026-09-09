@@ -5,16 +5,17 @@ import { TagChip } from '@/components/ui/TagChip';
 import { PinIcon } from '@/components/ui/PinIcon';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import type { Recipe } from '@/types/recipe';
-import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime } from '@/utils/format';
+import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime, normalizeCostLevel } from '@/utils/format';
 
 type PinnedRecipeCardProps = {
   recipe: Recipe;
+  onPress?: () => void;
   onPressPin: () => void;
 };
 
-export function PinnedRecipeCard({ recipe, onPressPin }: PinnedRecipeCardProps) {
+export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
         {recipe.photoUri ? (
           <Image source={{ uri: recipe.photoUri }} style={styles.image} contentFit="cover" />
@@ -44,10 +45,10 @@ export function PinnedRecipeCard({ recipe, onPressPin }: PinnedRecipeCardProps) 
         </View>
         <Text style={styles.meta}>
           {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
-          {COST_LABELS[recipe.costLevel]}
+          {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

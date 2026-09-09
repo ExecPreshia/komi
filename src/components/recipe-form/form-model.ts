@@ -1,4 +1,5 @@
 import type { CostLevel, Difficulty, Ingredient, Recipe, Step, SubStep } from '@/types/recipe';
+import { normalizeCostLevel } from '@/utils/format';
 import { createId } from '@/utils/id';
 
 export type RecipeFormValues = {
@@ -48,14 +49,14 @@ export function createEmptyFormValues(): RecipeFormValues {
   return {
     title: '',
     photoUri: null,
-    cookingTimeMinutes: 30,
+    cookingTimeMinutes: 0,
     difficulty: 'facile',
     costLevel: 'abordable',
-    baseServings: 2,
+    baseServings: 0,
     tags: [],
     isPinned: false,
     ingredients: [createEmptyIngredient(0)],
-    steps: [createEmptyStep(0)],
+    steps: [{ ...createEmptyStep(0), title: 'Étape 1' }],
   };
 }
 
@@ -65,7 +66,7 @@ export function recipeToFormValues(recipe: Recipe): RecipeFormValues {
     photoUri: recipe.photoUri,
     cookingTimeMinutes: recipe.cookingTimeMinutes,
     difficulty: recipe.difficulty,
-    costLevel: recipe.costLevel,
+    costLevel: normalizeCostLevel(recipe.costLevel),
     baseServings: recipe.baseServings,
     tags: [...recipe.tags],
     isPinned: recipe.isPinned,

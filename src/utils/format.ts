@@ -9,8 +9,14 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 export const COST_LABELS: Record<CostLevel, string> = {
   abordable: 'Abordable',
   modere: 'Modéré',
-  eleve: 'Élevé',
+  festif: 'Festif',
 };
+
+export function normalizeCostLevel(value: string): CostLevel {
+  if (value === 'eleve') return 'festif';
+  if (value === 'abordable' || value === 'modere' || value === 'festif') return value;
+  return 'abordable';
+}
 
 export function formatCookingTime(minutes: number): string {
   if (!Number.isFinite(minutes) || minutes <= 0) return '—';

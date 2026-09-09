@@ -1,5 +1,5 @@
 export type Difficulty = 'facile' | 'moyen' | 'difficile';
-export type CostLevel = 'abordable' | 'modere' | 'eleve';
+export type CostLevel = 'abordable' | 'modere' | 'festif';
 
 export type Ingredient = {
   id: string;

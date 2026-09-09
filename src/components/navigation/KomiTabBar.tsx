@@ -61,7 +61,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
         <View style={styles.fabSlot}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Saisie manuelle"
+            accessibilityLabel="Nouvelle recette"
             style={styles.fab}
             onPress={() => router.push('/recipe/new' as Href)}>
             <Text style={styles.fabLabel}>+</Text>

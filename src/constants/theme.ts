@@ -4,14 +4,15 @@
  */
 
 export const Colors = {
-  primary: '#F7F4F0',
-  secondary: '#E8DDD6',
+  primary: '#FAF9F7',
+  secondary: '#EFEAE4',
   text: '#2C2723',
-  line: '#C9C2BA',
+  line: '#E2DDD7',
   tag: '#D5E0D3',
   accent: '#DA6664',
   white: '#FFFFFF',
-  textMuted: '#6B6560',
+  textMuted: '#8A837C',
+  inputFill: '#F3EEE8',
 } as const;
 
 export type ThemeColor = keyof typeof Colors;
@@ -66,6 +67,16 @@ export const Typography = {
     fontSize: 12,
     fontWeight: '500' as const,
   },
+} as const;
+
+export const Fonts = {
+  sans: 'AlanSans_400Regular',
+  sansMedium: 'AlanSans_500Medium',
+  sansSemiBold: 'AlanSans_600SemiBold',
+  sansBold: 'AlanSans_700Bold',
+  body: 'Karla_400Regular',
+  bodyMedium: 'Karla_500Medium',
+  bodyBold: 'Karla_700Bold',
 } as const;
 
 /** Approximate bottom tab bar height excluding safe-area inset. */

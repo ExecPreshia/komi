@@ -2,8 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { Recipe, ShoppingListItem } from '@/types/recipe';
+import type { Ingredient, Recipe, ShoppingListItem } from '@/types/recipe';
+import { normalizeCostLevel } from '@/utils/format';
 import { createId } from '@/utils/id';
+import { scaleQuantity } from '@/utils/quantity';
 
 type KomiState = {
   recipes: Recipe[];
@@ -15,6 +17,11 @@ type KomiState = {
   togglePin: (id: string) => void;
   deleteRecipe: (id: string) => void;
   setShoppingList: (items: ShoppingListItem[]) => void;
+  addIngredientsToShoppingList: (
+    recipe: Recipe,
+    ingredients: Ingredient[],
+    servings: number,
+  ) => number;
 };
 
 export const useKomiStore = create<KomiState>()(
@@ -63,10 +70,38 @@ export const useKomiStore = create<KomiState>()(
         });
       },
       setShoppingList: (shoppingList) => set({ shoppingList }),
+      addIngredientsToShoppingList: (recipe, ingredients, servings) => {
+        if (ingredients.length === 0) return 0;
+        const startOrder = get().shoppingList.length;
+        const additions: ShoppingListItem[] = ingredients.map((ingredient, index) => ({
+          id: createId('shop'),
+          name: ingredient.name,
+          quantity: scaleQuantity(ingredient.quantity, recipe.baseServings, servings),
+          unit: ingredient.unit,
+          recipeId: recipe.id,
+          recipeTitle: recipe.title,
+          isChecked: false,
+          createdAt: new Date().toISOString(),
+          sortOrder: startOrder + index,
+        }));
+        set({ shoppingList: [...get().shoppingList, ...additions] });
+        return additions.length;
+      },
     }),
     {
       name: 'komi-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as { recipes?: Recipe[]; shoppingList?: ShoppingListItem[] };
+        return {
+          recipes: (state.recipes ?? []).map((recipe) => ({
+            ...recipe,
+            costLevel: normalizeCostLevel(String(recipe.costLevel)),
+          })),
+          shoppingList: state.shoppingList ?? [],
+        };
+      },
       partialize: (state) => ({
         recipes: state.recipes,
         shoppingList: state.shoppingList,

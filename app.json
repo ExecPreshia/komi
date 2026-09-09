@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F4F0",
+          "backgroundColor": "#FAF9F7",
           "image": "./assets/images/Komi-app-icon.png",
           "imageWidth": 120
         }

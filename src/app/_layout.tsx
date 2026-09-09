@@ -1,3 +1,15 @@
+import {
+  AlanSans_400Regular,
+  AlanSans_500Medium,
+  AlanSans_600SemiBold,
+  AlanSans_700Bold,
+} from '@expo-google-fonts/alan-sans';
+import {
+  Karla_400Regular,
+  Karla_500Medium,
+  Karla_700Bold,
+} from '@expo-google-fonts/karla';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -10,6 +22,15 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const hasHydrated = useKomiStore((state) => state.hasHydrated);
+  const [fontsLoaded] = useFonts({
+    AlanSans_400Regular,
+    AlanSans_500Medium,
+    AlanSans_600SemiBold,
+    AlanSans_700Bold,
+    Karla_400Regular,
+    Karla_500Medium,
+    Karla_700Bold,
+  });
 
   useEffect(() => {
     if (useKomiStore.persist.hasHydrated()) {
@@ -24,12 +45,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (hasHydrated) {
+    if (hasHydrated && fontsLoaded) {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [hasHydrated]);
+  }, [hasHydrated, fontsLoaded]);
 
-  if (!hasHydrated) {
+  if (!hasHydrated || !fontsLoaded) {
     return (
       <View style={styles.boot}>
         <ActivityIndicator color={Colors.accent} />
@@ -40,7 +61,9 @@ export default function RootLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.primary } }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="recipe/new" options={{ presentation: 'modal', headerShown: true, title: 'Saisie manuelle' }} />
+      <Stack.Screen name="recipe/new" options={{ presentation: 'modal', headerShown: false }} />
+      <Stack.Screen name="recipe/[id]/index" options={{ headerShown: false }} />
+      <Stack.Screen name="recipe/[id]/edit" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: true, title: 'Paramètres' }} />
     </Stack>
   );

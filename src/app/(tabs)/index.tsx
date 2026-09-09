@@ -74,7 +74,7 @@ export default function HomeScreen() {
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>Mes recettes</Text>
             <Text style={styles.emptyBody}>
-              Aucune recette pour le moment. Appuyez sur + pour ajouter une saisie manuelle.
+              Aucune recette pour le moment. Appuyez sur + pour créer une nouvelle recette.
             </Text>
           </View>
         ) : (
@@ -93,6 +93,7 @@ export default function HomeScreen() {
                     <PinnedRecipeCard
                       key={recipe.id}
                       recipe={recipe}
+                      onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
                       onPressPin={() => togglePin(recipe.id)}
                     />
                   ))}
@@ -110,6 +111,7 @@ export default function HomeScreen() {
                     <RecipeListCard
                       key={recipe.id}
                       recipe={recipe}
+                      onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
                       onPressPin={() => togglePin(recipe.id)}
                     />
                   ))}
