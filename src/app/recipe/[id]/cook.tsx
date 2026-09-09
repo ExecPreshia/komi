@@ -23,7 +23,7 @@ type TimerMap = Record<string, number>;
 
 const PREV_BARE_PEEK = 14;
 const PREV_TIMER_PEEK = 52;
-const NEXT_PEEK = 44;
+const NEXT_PEEK = 48;
 
 export default function CookingModeScreen() {
   useKeepAwake();
@@ -217,7 +217,8 @@ export default function CookingModeScreen() {
             style={[
               styles.stackCard,
               styles.activeCard,
-              { top: topInset - 6, bottom: Math.max(0, bottomInset - 10) },
+              // Slight overlap keeps the stack look while leaving the next title strip open.
+              { top: topInset - 6, bottom: Math.max(0, bottomInset - 8) },
             ]}>
             <Text style={styles.currentTitle}>{stepHeading(current)}</Text>
 
@@ -392,18 +393,23 @@ const styles = StyleSheet.create({
   prevCard: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
+    left: 14,
+    right: 14,
     zIndex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
     overflow: 'hidden',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 1,
   },
   prevCardBare: {
     height: PREV_BARE_PEEK + 8,
     opacity: 0.95,
+    left: 22,
+    right: 22,
   },
   prevCardExpanded: {
     height: PREV_TIMER_PEEK + 8,
@@ -412,15 +418,18 @@ const styles = StyleSheet.create({
   },
   nextCard: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 14,
+    right: 14,
     bottom: 0,
-    height: NEXT_PEEK + 12,
+    height: NEXT_PEEK,
     zIndex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.three,
+    paddingTop: Spacing.three,
     overflow: 'hidden',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 1,
   },
   activeCard: {
     position: 'absolute',
