@@ -47,21 +47,18 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <KomiLogo width={87} height={32} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Paramètres"
-          style={styles.settingsButton}
-          onPress={() => router.push('/settings' as Href)}>
-          <GearIcon color={Colors.text} />
-        </Pressable>
-      </View>
+      <View style={styles.headerBlock}>
+        <View style={styles.headerTop}>
+          <KomiLogo width={87} height={32} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Paramètres"
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings' as Href)}>
+            <GearIcon color={Colors.text} />
+          </Pressable>
+        </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled">
         <View style={styles.searchBlock}>
           <SearchField value={query} onChangeText={setQuery} />
         </View>
@@ -69,7 +66,13 @@ export default function HomeScreen() {
         {allTags.length > 0 ? (
           <TagFilterRow tags={allTags} selectedTag={selectedTag} onSelect={setSelectedTag} />
         ) : null}
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
         {recipes.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>Mes recettes</Text>
@@ -85,19 +88,22 @@ export default function HomeScreen() {
                   <PinIcon active size={16} />
                   <Text style={styles.sectionTitle}>Au menu</Text>
                 </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.pinnedRow}>
-                  {pinned.map((recipe) => (
-                    <PinnedRecipeCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
-                      onPressPin={() => togglePin(recipe.id)}
-                    />
-                  ))}
-                </ScrollView>
+                <View style={styles.pinnedTrack}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.pinnedScroll}
+                    contentContainerStyle={styles.pinnedRow}>
+                    {pinned.map((recipe) => (
+                      <PinnedRecipeCard
+                        key={recipe.id}
+                        recipe={recipe}
+                        onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
+                        onPressPin={() => togglePin(recipe.id)}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
               </View>
             ) : null}
 
@@ -128,15 +134,25 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.white,
   },
-  header: {
+  headerBlock: {
+    backgroundColor: Colors.white,
+    paddingBottom: Spacing.three,
+    gap: Spacing.three,
+    shadowColor: Colors.text,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    zIndex: 2,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
   },
   settingsButton: {
     width: 47,
@@ -146,15 +162,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Spacing.seven,
-    gap: Spacing.four,
-  },
   searchBlock: {
     paddingHorizontal: Spacing.four,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  scrollContent: {
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.seven,
+    gap: Spacing.four,
   },
   empty: {
     paddingHorizontal: Spacing.four,
@@ -169,8 +187,6 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   pinnedSection: {
-    backgroundColor: Colors.secondary,
-    paddingVertical: Spacing.four,
     gap: Spacing.three,
   },
   sectionHeader: {
@@ -182,9 +198,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.section,
   },
+  pinnedTrack: {
+    backgroundColor: Colors.secondary,
+    paddingVertical: Spacing.four,
+    overflow: 'visible',
+  },
+  pinnedScroll: {
+    overflow: 'visible',
+  },
   pinnedRow: {
     paddingHorizontal: Spacing.four,
     gap: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   listSection: {
     paddingHorizontal: Spacing.four,

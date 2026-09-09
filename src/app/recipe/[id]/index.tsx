@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { type Href, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TagChip } from '@/components/ui/TagChip';
@@ -75,6 +77,24 @@ export default function RecipeDetailScreen() {
     if (!recipe) return [];
     return recipe.ingredients.filter((item) => !checkedIds.has(item.id));
   }, [recipe, checkedIds]);
+
+  const goToIngredients = useCallback(() => setTab('ingredients'), []);
+  const goToPreparation = useCallback(() => setTab('preparation'), []);
+
+  const tabSwipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-24, 24])
+        .failOffsetY([-20, 20])
+        .onEnd((event) => {
+          if (event.translationX < -48) {
+            runOnJS(goToPreparation)();
+          } else if (event.translationX > 48) {
+            runOnJS(goToIngredients)();
+          }
+        }),
+    [goToIngredients, goToPreparation],
+  );
 
   if (!recipe) {
     return (
@@ -200,18 +220,22 @@ export default function RecipeDetailScreen() {
             </Pressable>
           </View>
 
-          {tab === 'ingredients' ? (
-            <IngredientsPanel
-              recipe={recipe}
-              servings={servings}
-              setServings={setServings}
-              groups={groups}
-              checkedIds={checkedIds}
-              onToggleChecked={toggleChecked}
-            />
-          ) : (
-            <PreparationPanel recipe={recipe} />
-          )}
+          <GestureDetector gesture={tabSwipe}>
+            <View>
+              {tab === 'ingredients' ? (
+                <IngredientsPanel
+                  recipe={recipe}
+                  servings={servings}
+                  setServings={setServings}
+                  groups={groups}
+                  checkedIds={checkedIds}
+                  onToggleChecked={toggleChecked}
+                />
+              ) : (
+                <PreparationPanel recipe={recipe} />
+              )}
+            </View>
+          </GestureDetector>
         </View>
       </ScrollView>
 
@@ -226,9 +250,13 @@ export default function RecipeDetailScreen() {
         ) : null}
         <Pressable
           style={styles.cookButton}
-          onPress={() =>
-            Alert.alert('Bientôt', 'Le mode Cuisiner arrive à la prochaine étape.')
-          }>
+          onPress={() => {
+            if (recipe.steps.length === 0) {
+              Alert.alert('Aucune étape', 'Ajoutez des étapes avant de cuisiner cette recette.');
+              return;
+            }
+            router.push(`/recipe/${recipe.id}/cook?servings=${servings}` as Href);
+          }}>
           <ChefHatIcon />
           <Text style={styles.cookLabel}>Cuisiner</Text>
         </Pressable>
@@ -510,6 +538,12 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    backgroundColor: Colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.line,
+    marginHorizontal: -Spacing.four,
+    paddingTop: Spacing.three,
     marginTop: Spacing.two,
   },
   tab: {
@@ -534,6 +568,7 @@ const styles = StyleSheet.create({
   },
   panel: {
     gap: Spacing.three,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
   },
   portionsBar: {
