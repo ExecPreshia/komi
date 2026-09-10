@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShoppingGroup } from '@/components/shopping/ShoppingGroup';
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
+import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CartIcon } from '@/components/ui/icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -27,10 +28,12 @@ export default function ShoppingScreen() {
   const shoppingList = useKomiStore((state) => state.shoppingList);
   const addManualShoppingItem = useKomiStore((state) => state.addManualShoppingItem);
   const toggleShoppingItem = useKomiStore((state) => state.toggleShoppingItem);
+  const setShoppingItemsChecked = useKomiStore((state) => state.setShoppingItemsChecked);
   const removeShoppingItem = useKomiStore((state) => state.removeShoppingItem);
   const removeCheckedShoppingItems = useKomiStore((state) => state.removeCheckedShoppingItems);
 
   const [draft, setDraft] = useState('');
+  const [clearOpen, setClearOpen] = useState(false);
 
   const sections = useMemo(() => buildSections(shoppingList), [shoppingList]);
   const checkedCount = shoppingList.filter((item) => item.isChecked).length;
@@ -55,28 +58,13 @@ export default function ShoppingScreen() {
     ]);
   }
 
-  function handleClearChecked() {
-    Alert.alert(
-      'Nettoyer la liste',
-      `Supprimer ${checkedCount} article${checkedCount > 1 ? 's' : ''} coché${checkedCount > 1 ? 's' : ''} ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Nettoyer',
-          style: 'destructive',
-          onPress: removeCheckedShoppingItems,
-        },
-      ],
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={styles.header}>
           <Text style={styles.title}>Liste de courses</Text>
           {checkedCount > 0 ? (
-            <Pressable onPress={handleClearChecked} hitSlop={8}>
+            <Pressable onPress={() => setClearOpen(true)} hitSlop={8}>
               <Text style={styles.clearLabel}>Nettoyer ({checkedCount})</Text>
             </Pressable>
           ) : null}
@@ -126,11 +114,23 @@ export default function ShoppingScreen() {
                 items={section.items}
                 onToggle={toggleShoppingItem}
                 onRemove={handleRemove}
+                onToggleGroup={setShoppingItemsChecked}
               />
             ))}
           </AppKeyboardAwareScrollView>
         )}
       </KeyboardAvoidingView>
+
+      <KomiConfirmSheet
+        visible={clearOpen}
+        title="Nettoyer la liste"
+        message={`Supprimer ${checkedCount} article${checkedCount > 1 ? 's' : ''} coché${checkedCount > 1 ? 's' : ''} ?`}
+        cancelLabel="Annuler"
+        confirmLabel="Nettoyer"
+        destructive
+        onClose={() => setClearOpen(false)}
+        onConfirm={removeCheckedShoppingItems}
+      />
     </SafeAreaView>
   );
 }

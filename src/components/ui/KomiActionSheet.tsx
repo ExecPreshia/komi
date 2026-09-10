@@ -74,6 +74,7 @@ type KomiConfirmSheetProps = {
   confirmLabel: string;
   cancelLabel?: string;
   destructive?: boolean;
+  hideCancel?: boolean;
   onConfirm: () => void;
   onClose: () => void;
   icon?: ReactNode;
@@ -87,6 +88,7 @@ export function KomiConfirmSheet({
   confirmLabel,
   cancelLabel = 'Continuer',
   destructive = false,
+  hideCancel = false,
   onConfirm,
   onClose,
   icon,
@@ -99,11 +101,17 @@ export function KomiConfirmSheet({
           <Text style={styles.confirmTitle}>{title}</Text>
           {message ? <Text style={styles.confirmMessage}>{message}</Text> : null}
           <View style={styles.confirmActions}>
-            <Pressable style={styles.confirmSecondary} onPress={onClose}>
-              <Text style={styles.confirmSecondaryLabel}>{cancelLabel}</Text>
-            </Pressable>
+            {hideCancel ? null : (
+              <Pressable style={styles.confirmSecondary} onPress={onClose}>
+                <Text style={styles.confirmSecondaryLabel}>{cancelLabel}</Text>
+              </Pressable>
+            )}
             <Pressable
-              style={[styles.confirmPrimary, destructive && styles.confirmPrimaryDestructive]}
+              style={[
+                styles.confirmPrimary,
+                hideCancel && styles.confirmPrimaryFull,
+                destructive && styles.confirmPrimaryDestructive,
+              ]}
               onPress={() => {
                 onClose();
                 onConfirm();
@@ -234,6 +242,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.three,
+  },
+  confirmPrimaryFull: {
+    flex: 1,
   },
   confirmPrimaryDestructive: {
     backgroundColor: Colors.accent,

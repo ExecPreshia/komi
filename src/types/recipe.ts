@@ -50,6 +50,8 @@ export type ShoppingListItem = {
   unit: string | null;
   recipeId: string | null;
   recipeTitle: string | null;
+  /** Original recipe ingredient id — used to prevent duplicate adds. */
+  ingredientId: string | null;
   isChecked: boolean;
   createdAt: string;
   sortOrder: number;

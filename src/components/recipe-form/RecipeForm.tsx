@@ -30,7 +30,7 @@ import {
   useDragScrollMetrics,
 } from '@/components/recipe-form/ReorderableList';
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
-import { KomiActionSheet } from '@/components/ui/KomiActionSheet';
+import { KomiActionSheet, KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { TagChip } from '@/components/ui/TagChip';
 import {
   CameraIcon,
@@ -75,6 +75,8 @@ export function RecipeForm({
   );
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
+  const [incompleteOpen, setIncompleteOpen] = useState(false);
+  const [incompleteMessage, setIncompleteMessage] = useState('');
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const { scrollController, onScroll, onLayout, onContentSizeChange } =
     useDragScrollMetrics(scrollRef);
@@ -193,7 +195,8 @@ export function RecipeForm({
     };
     const error = validateRecipeForm(nextValues);
     if (error) {
-      Alert.alert('Recette incomplète', error);
+      setIncompleteMessage(error);
+      setIncompleteOpen(true);
       return;
     }
     onSubmit(sanitizeFormValues(nextValues));
@@ -591,6 +594,16 @@ export function RecipeForm({
         ]}
         cancelLabel="Annuler"
         onClose={() => setPhotoSheetOpen(false)}
+      />
+
+      <KomiConfirmSheet
+        visible={incompleteOpen}
+        title="Recette incomplète"
+        message={incompleteMessage}
+        confirmLabel="OK"
+        hideCancel
+        onClose={() => setIncompleteOpen(false)}
+        onConfirm={() => setIncompleteOpen(false)}
       />
     </View>
   );

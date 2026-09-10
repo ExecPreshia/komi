@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ShoppingRow } from '@/components/shopping/ShoppingRow';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
@@ -9,14 +9,36 @@ type ShoppingGroupProps = {
   items: ShoppingListItem[];
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
+  onToggleGroup: (ids: string[], isChecked: boolean) => void;
 };
 
-export function ShoppingGroup({ title, items, onToggle, onRemove }: ShoppingGroupProps) {
+export function ShoppingGroup({
+  title,
+  items,
+  onToggle,
+  onRemove,
+  onToggleGroup,
+}: ShoppingGroupProps) {
   if (items.length === 0) return null;
+
+  const allChecked = items.every((item) => item.isChecked);
+  const selectLabel = allChecked ? 'Tout désélectionner' : 'Tout sélectionner';
 
   return (
     <View style={styles.block}>
-      {title ? <Text style={styles.title}>{title}</Text> : null}
+      <View style={styles.header}>
+        {title ? <Text style={styles.title}>{title}</Text> : <View style={styles.titleSpacer} />}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={selectLabel}
+          hitSlop={8}
+          onPress={() => onToggleGroup(
+            items.map((item) => item.id),
+            !allChecked,
+          )}>
+          <Text style={styles.selectAll}>{selectLabel}</Text>
+        </Pressable>
+      </View>
       <View style={styles.card}>
         {items.map((item, index) => (
           <ShoppingRow
@@ -36,11 +58,27 @@ const styles = StyleSheet.create({
   block: {
     gap: Spacing.two,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.one,
+    minHeight: 22,
+  },
   title: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 16,
     color: Colors.text,
-    paddingHorizontal: Spacing.one,
+    flex: 1,
+  },
+  titleSpacer: {
+    flex: 1,
+  },
+  selectAll: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 13,
+    color: Colors.accent,
   },
   card: {
     backgroundColor: Colors.white,

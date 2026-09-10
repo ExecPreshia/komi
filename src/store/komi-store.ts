@@ -24,6 +24,7 @@ type KomiState = {
   ) => number;
   addManualShoppingItem: (name: string) => void;
   toggleShoppingItem: (id: string) => void;
+  setShoppingItemsChecked: (ids: string[], isChecked: boolean) => void;
   removeShoppingItem: (id: string) => void;
   removeCheckedShoppingItems: () => void;
 };
@@ -76,19 +77,29 @@ export const useKomiStore = create<KomiState>()(
       setShoppingList: (shoppingList) => set({ shoppingList }),
       addIngredientsToShoppingList: (recipe, ingredients, servings) => {
         if (ingredients.length === 0) return 0;
-        const startOrder = get().shoppingList.length;
-        const additions: ShoppingListItem[] = ingredients.map((ingredient, index) => ({
+        const list = get().shoppingList;
+        const existingIngredientIds = new Set(
+          list
+            .filter((item) => item.recipeId === recipe.id && item.ingredientId)
+            .map((item) => item.ingredientId as string),
+        );
+        const missing = ingredients.filter((ingredient) => !existingIngredientIds.has(ingredient.id));
+        if (missing.length === 0) return 0;
+
+        const startOrder = list.length;
+        const additions: ShoppingListItem[] = missing.map((ingredient, index) => ({
           id: createId('shop'),
           name: ingredient.name,
           quantity: scaleQuantity(ingredient.quantity, recipe.baseServings, servings),
           unit: ingredient.unit,
           recipeId: recipe.id,
           recipeTitle: recipe.title,
+          ingredientId: ingredient.id,
           isChecked: false,
           createdAt: new Date().toISOString(),
           sortOrder: startOrder + index,
         }));
-        set({ shoppingList: [...get().shoppingList, ...additions] });
+        set({ shoppingList: [...list, ...additions] });
         return additions.length;
       },
       addManualShoppingItem: (name) => {
@@ -102,6 +113,7 @@ export const useKomiStore = create<KomiState>()(
           unit: null,
           recipeId: null,
           recipeTitle: null,
+          ingredientId: null,
           isChecked: false,
           createdAt: new Date().toISOString(),
           sortOrder: list.length,
@@ -112,6 +124,15 @@ export const useKomiStore = create<KomiState>()(
         set({
           shoppingList: get().shoppingList.map((item) =>
             item.id === id ? { ...item, isChecked: !item.isChecked } : item,
+          ),
+        });
+      },
+      setShoppingItemsChecked: (ids, isChecked) => {
+        if (ids.length === 0) return;
+        const idSet = new Set(ids);
+        set({
+          shoppingList: get().shoppingList.map((item) =>
+            idSet.has(item.id) ? { ...item, isChecked } : item,
           ),
         });
       },
@@ -129,7 +150,7 @@ export const useKomiStore = create<KomiState>()(
     {
       name: 'komi-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
       migrate: (persisted) => {
         const state = persisted as { recipes?: Recipe[]; shoppingList?: ShoppingListItem[] };
         return {
@@ -137,7 +158,10 @@ export const useKomiStore = create<KomiState>()(
             ...recipe,
             costLevel: normalizeCostLevel(String(recipe.costLevel)),
           })),
-          shoppingList: state.shoppingList ?? [],
+          shoppingList: (state.shoppingList ?? []).map((item) => ({
+            ...item,
+            ingredientId: item.ingredientId ?? null,
+          })),
         };
       },
       partialize: (state) => ({
