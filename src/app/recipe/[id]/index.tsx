@@ -28,7 +28,7 @@ import {
   LightbulbIcon,
   MoreIcon,
 } from '@/components/recipe/detail-icons';
-import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 import type { Difficulty, Recipe } from '@/types/recipe';
 import { COST_LABELS, DIFFICULTY_LABELS, normalizeCostLevel } from '@/utils/format';
@@ -211,18 +211,21 @@ export default function RecipeDetailScreen() {
           </View>
 
           <View style={styles.tabs}>
-            <Pressable style={styles.tab} onPress={() => setTab('ingredients')}>
-              <Text style={[styles.tabLabel, tab === 'ingredients' && styles.tabLabelActive]}>
-                Ingrédients
-              </Text>
-              {tab === 'ingredients' ? <View style={styles.tabUnderline} /> : null}
-            </Pressable>
-            <Pressable style={styles.tab} onPress={() => setTab('preparation')}>
-              <Text style={[styles.tabLabel, tab === 'preparation' && styles.tabLabelActive]}>
-                Préparation
-              </Text>
-              {tab === 'preparation' ? <View style={styles.tabUnderline} /> : null}
-            </Pressable>
+            <View style={styles.tabsRow}>
+              <Pressable style={styles.tab} onPress={() => setTab('ingredients')}>
+                <Text style={[styles.tabLabel, tab === 'ingredients' && styles.tabLabelActive]}>
+                  Ingrédients
+                </Text>
+                {tab === 'ingredients' ? <View style={styles.tabUnderline} /> : null}
+              </Pressable>
+              <Pressable style={styles.tab} onPress={() => setTab('preparation')}>
+                <Text style={[styles.tabLabel, tab === 'preparation' && styles.tabLabelActive]}>
+                  Préparation
+                </Text>
+                {tab === 'preparation' ? <View style={styles.tabUnderline} /> : null}
+              </Pressable>
+            </View>
+            <View style={styles.tabsBottomLine} />
           </View>
 
           <GestureDetector gesture={tabSwipe}>
@@ -259,7 +262,7 @@ export default function RecipeDetailScreen() {
           <RoundButton
             onPress={() => togglePin(recipe.id)}
             accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}>
-            <PinIcon active={recipe.isPinned} />
+            <PinIcon active={recipe.isPinned} size={16} />
           </RoundButton>
           <RoundButton onPress={() => setMenuOpen(true)} accessibilityLabel="Plus d'options">
             <MoreIcon />
@@ -454,40 +457,42 @@ function PreparationPanel({
   return (
     <View style={styles.panel}>
       {showNotesCard ? (
-        <View style={styles.notesCard}>
+        <View style={styles.notesSection}>
           <View style={styles.notesHeader}>
-            <LightbulbIcon />
+            <LightbulbIcon size={20} />
             <Text style={styles.notesTitle}>Remarques</Text>
           </View>
-          {editingNotes ? (
-            <>
-              <TextInput
-                ref={notesInputRef}
-                value={notesDraft}
-                onChangeText={onChangeNotes}
-                placeholder="Ex : mettre moins de sel, très bon avec une salade…"
-                placeholderTextColor={Colors.textMuted}
-                multiline
-                textAlignVertical="top"
-                style={styles.notesInput}
-                autoFocus
-              />
-              <View style={styles.notesActions}>
-                <Pressable onPress={onCancelNotes} hitSlop={8}>
-                  <Text style={styles.notesCancel}>Annuler</Text>
-                </Pressable>
-                <Pressable onPress={onSaveNotes} style={styles.notesSave}>
-                  <Text style={styles.notesSaveLabel}>Enregistrer</Text>
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            noteLines.map((line) => (
-              <Text key={line} style={styles.noteLine}>
-                • {line}
-              </Text>
-            ))
-          )}
+          <View style={styles.notesTrack}>
+            {editingNotes ? (
+              <>
+                <TextInput
+                  ref={notesInputRef}
+                  value={notesDraft}
+                  onChangeText={onChangeNotes}
+                  placeholder="Ex : mettre moins de sel, très bon avec une salade…"
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  textAlignVertical="top"
+                  style={styles.notesInput}
+                  autoFocus
+                />
+                <View style={styles.notesActions}>
+                  <Pressable onPress={onCancelNotes} hitSlop={8}>
+                    <Text style={styles.notesCancel}>Annuler</Text>
+                  </Pressable>
+                  <Pressable onPress={onSaveNotes} style={styles.notesSave}>
+                    <Text style={styles.notesSaveLabel}>Enregistrer</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              noteLines.map((line) => (
+                <Text key={line} style={styles.noteLine}>
+                  • {line}
+                </Text>
+              ))
+            )}
+          </View>
         </View>
       ) : null}
 
@@ -633,20 +638,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.four,
   },
   tabs: {
+    backgroundColor: Colors.white,
+    marginHorizontal: -Spacing.four,
+    marginTop: Spacing.two,
+    ...Shadows.card,
+  },
+  tabsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: Colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.line,
-    marginHorizontal: -Spacing.four,
     paddingTop: Spacing.three,
-    marginTop: Spacing.two,
   },
   tab: {
     alignItems: 'center',
     minWidth: 120,
-    paddingBottom: Spacing.two,
+    // Reserve space under the label so the absolute indicator does not
+    // shift selected vs unselected text baselines.
+    paddingBottom: Spacing.two + 3,
   },
   tabLabel: {
     fontFamily: Fonts.sansSemiBold,
@@ -657,11 +664,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   tabUnderline: {
-    marginTop: Spacing.two,
+    position: 'absolute',
+    bottom: 0,
     height: 3,
     width: 42,
     borderRadius: 2,
     backgroundColor: Colors.text,
+  },
+  tabsBottomLine: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.line,
   },
   panel: {
     gap: Spacing.three,
@@ -719,12 +731,8 @@ const styles = StyleSheet.create({
   ingredientCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.lg,
-    paddingHorizontal: Spacing.three,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    paddingHorizontal: Spacing.four,
+    ...Shadows.card,
   },
   ingredientDivider: {
     height: StyleSheet.hairlineWidth,
@@ -788,21 +796,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.bodyBold,
   },
-  notesCard: {
-    backgroundColor: Colors.secondary,
-    borderRadius: Radii.lg,
-    padding: Spacing.three,
-    gap: Spacing.two,
+  notesSection: {
+    gap: Spacing.three,
+    marginHorizontal: -Spacing.four,
   },
   notesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
   },
   notesTitle: {
-    fontFamily: Fonts.sansSemiBold,
-    fontSize: 16,
+    fontFamily: Fonts.sansBold,
+    fontSize: 18,
     color: Colors.text,
+  },
+  notesTrack: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.four,
+    gap: Spacing.two,
   },
   noteLine: {
     fontFamily: Fonts.body,
@@ -862,13 +875,9 @@ const styles = StyleSheet.create({
   stepCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.lg,
-    padding: Spacing.three,
+    padding: Spacing.four,
     gap: Spacing.two,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    ...Shadows.card,
   },
   stepBody: {
     fontFamily: Fonts.body,

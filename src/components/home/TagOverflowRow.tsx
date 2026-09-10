@@ -8,22 +8,33 @@ const GAP = Spacing.one;
 
 type TagOverflowRowProps = {
   tags: string[];
+  /**
+   * Optional bounded width from the parent card content box.
+   * Required for flex list cards ("Mes recettes") where measuring the tag
+   * row itself can report intrinsic content width and skip +N.
+   */
+  containerWidth?: number;
 };
 
 /**
  * Single-line tags with a trailing +N when they do not all fit.
  * +N is non-interactive; the parent card handles press.
  *
- * Available width is measured on the outer wrap (not the inner nowrap row),
- * so flex list cards ("Mes recettes") get a correct +N like pinned cards.
+ * Shared by PinnedRecipeCard and RecipeListCard — do not fork this logic.
  */
-export function TagOverflowRow({ tags }: TagOverflowRowProps) {
-  const [availableWidth, setAvailableWidth] = useState(0);
+export function TagOverflowRow({ tags, containerWidth }: TagOverflowRowProps) {
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const [plusWidth, setPlusWidth] = useState(0);
   const [tagWidths, setTagWidths] = useState<Record<number, number>>({});
   const tagsKey = tags.join('\u0001');
 
+  const availableWidth =
+    typeof containerWidth === 'number' && containerWidth > 0 ? containerWidth : measuredWidth;
+
   useEffect(() => {
     setTagWidths({});
+    setMeasuredWidth(0);
+    setPlusWidth(0);
   }, [tagsKey]);
 
   const measuredAll =
@@ -32,8 +43,6 @@ export function TagOverflowRow({ tags }: TagOverflowRowProps) {
   const { visibleCount, overflowCount } = useMemo(() => {
     if (tags.length === 0) return { visibleCount: 0, overflowCount: 0 };
 
-    // Keep tags visible until we can compute overflow — an empty row collapses
-    // and prevents measure layouts from completing on list cards.
     if (availableWidth <= 0 || !measuredAll) {
       return { visibleCount: tags.length, overflowCount: 0 };
     }
@@ -48,38 +57,44 @@ export function TagOverflowRow({ tags }: TagOverflowRowProps) {
 
     for (let count = tags.length - 1; count >= 0; count -= 1) {
       const overflow = tags.length - count;
-      const plusWidth = estimatePlusWidth(overflow);
+      const reservedPlus = plusWidth > 0 ? plusWidth : estimatePlusWidth(overflow);
       const tagsWidth =
         count === 0
           ? 0
           : widths.slice(0, count).reduce((sum, width) => sum + width, 0) +
             GAP * Math.max(0, count - 1);
       const gapsBeforePlus = count > 0 ? GAP : 0;
-      if (tagsWidth + gapsBeforePlus + plusWidth <= availableWidth) {
+      if (tagsWidth + gapsBeforePlus + reservedPlus <= availableWidth) {
         return { visibleCount: count, overflowCount: overflow };
       }
     }
 
     return { visibleCount: 0, overflowCount: tags.length };
-  }, [availableWidth, measuredAll, tagWidths, tags]);
+  }, [availableWidth, measuredAll, tagWidths, tags, plusWidth]);
 
   return (
     <View
       style={styles.wrap}
       onLayout={(event) => {
         const width = event.nativeEvent.layout.width;
-        if (width > 0) setAvailableWidth(width);
+        if (typeof containerWidth === 'number' && containerWidth > 0) return;
+        if (width > 0) setMeasuredWidth(width);
       }}>
+      {/*
+        Unconstrained measure lane: parent overflow/width must not compress
+        chips or onLayout widths stay too small and +N never appears.
+      */}
       <View
         pointerEvents="none"
         collapsable={false}
-        style={styles.measureRow}
+        style={styles.measureLane}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants">
         {tags.map((tag, index) => (
           <View
             key={`measure-${tag}-${index}`}
             collapsable={false}
+            style={styles.measureItem}
             onLayout={(event) => {
               const width = event.nativeEvent.layout.width;
               if (width <= 0) return;
@@ -91,6 +106,18 @@ export function TagOverflowRow({ tags }: TagOverflowRowProps) {
             <TagChip label={tag} />
           </View>
         ))}
+        <View
+          collapsable={false}
+          style={styles.measureItem}
+          onLayout={(event) => {
+            const width = event.nativeEvent.layout.width;
+            if (width <= 0) return;
+            setPlusWidth((current) => (current === width ? current : width));
+          }}>
+          <View style={styles.plusChip}>
+            <Text style={styles.plusLabel}>+9</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.row}>
@@ -116,15 +143,22 @@ const styles = StyleSheet.create({
   wrap: {
     width: '100%',
     alignSelf: 'stretch',
+    minWidth: 0,
     overflow: 'hidden',
   },
-  measureRow: {
+  measureLane: {
     position: 'absolute',
     opacity: 0,
-    flexDirection: 'row',
     left: 0,
     top: 0,
-    zIndex: -1,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    // Wider than any card so chips keep their natural widths while measuring.
+    width: 4000,
+  },
+  measureItem: {
+    flexShrink: 0,
+    marginRight: GAP,
   },
   row: {
     flexDirection: 'row',
@@ -132,6 +166,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: GAP,
     overflow: 'hidden',
+    minWidth: 0,
   },
   plusChip: {
     borderRadius: Radii.pill,

@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookIcon, CartIcon } from '@/components/ui/icons';
-import { Colors, Radii, Spacing, TabBarHeight, Typography } from '@/constants/theme';
+import { Colors, Fonts, Radii, Shadows, Spacing, TabBarHeight, Typography } from '@/constants/theme';
+import { useKomiStore } from '@/store/komi-store';
 
 type TabRoute = {
   key: string;
@@ -28,6 +29,9 @@ export type KomiTabBarProps = {
 export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Spacing.two);
+  const uncheckedCount = useKomiStore(
+    (store) => store.shoppingList.filter((item) => !item.isChecked).length,
+  );
 
   const recipesRoute = state.routes.find((route) => route.name === 'index');
   const shoppingRoute = state.routes.find((route) => route.name === 'shopping');
@@ -54,7 +58,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
               navigation.navigate(recipesRoute.name);
             }
           }}>
-          <BookIcon color={recipesFocused ? Colors.accent : Colors.text} filled={recipesFocused} />
+          <BookIcon filled={recipesFocused} />
           <Text style={[styles.label, recipesFocused && styles.labelActive]}>Recettes</Text>
         </Pressable>
 
@@ -84,7 +88,14 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
               navigation.navigate(shoppingRoute.name);
             }
           }}>
-          <CartIcon color={shoppingFocused ? Colors.accent : Colors.text} filled={shoppingFocused} />
+          <View style={styles.coursesIconWrap}>
+            <CartIcon filled={shoppingFocused} />
+            {uncheckedCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeLabel}>{uncheckedCount > 99 ? '99+' : uncheckedCount}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={[styles.label, shoppingFocused && styles.labelActive]}>Courses</Text>
         </Pressable>
       </View>
@@ -132,16 +143,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.text,
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...Shadows.card,
   },
   fabLabel: {
     color: Colors.white,
     fontSize: 32,
     fontWeight: '400',
     marginTop: -2,
+  },
+  coursesIconWrap: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeLabel: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 10,
+    color: Colors.white,
   },
 });

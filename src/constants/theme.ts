@@ -81,3 +81,14 @@ export const Fonts = {
 
 /** Approximate bottom tab bar height excluding safe-area inset. */
 export const TabBarHeight = 70;
+
+/** Figma card shadow: #8B4127 @ 10%, Y 7, blur 12. */
+export const Shadows = {
+  card: {
+    shadowColor: '#8B4127',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
+  },
+} as const;

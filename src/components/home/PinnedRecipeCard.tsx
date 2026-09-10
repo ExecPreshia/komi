@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TagOverflowRow } from '@/components/home/TagOverflowRow';
 import { PinIcon } from '@/components/ui/PinIcon';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
 import type { Recipe } from '@/types/recipe';
 import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime, normalizeCostLevel } from '@/utils/format';
 
@@ -35,7 +35,7 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
             accessibilityLabel="Retirer du menu"
             hitSlop={8}
             onPress={onPressPin}>
-            <PinIcon active />
+            <PinIcon active size={16} />
           </Pressable>
         </View>
         <TagOverflowRow tags={recipe.tags} />
@@ -54,11 +54,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radii.lg,
     padding: 5,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    ...Shadows.card,
   },
   imageWrap: {
     height: 147,

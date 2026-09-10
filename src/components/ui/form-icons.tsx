@@ -1,5 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { KomiIcon, KomiIconAssets, KomiIconIntrinsic, sizeByHeight } from '@/components/icons/KomiIcon';
 import { Colors } from '@/constants/theme';
 
 type IconProps = {
@@ -30,38 +31,14 @@ export function CameraIcon({ color = Colors.textMuted, size = 28 }: IconProps) {
   );
 }
 
-export function TrashIcon({ color = Colors.textMuted, size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M5 7H19" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-      <Path d="M9 7V5.5C9 4.7 9.7 4 10.5 4H13.5C14.3 4 15 4.7 15 5.5V7" stroke={color} strokeWidth={1.6} />
-      <Path
-        d="M8 7L8.7 18.2C8.8 19.2 9.6 20 10.6 20H13.4C14.4 20 15.2 19.2 15.3 18.2L16 7"
-        stroke={color}
-        strokeWidth={1.6}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+export function TrashIcon({ size = 16 }: IconProps) {
+  const dims = sizeByHeight(KomiIconIntrinsic.trash, size);
+  return <KomiIcon source={KomiIconAssets.trash} width={dims.width} height={dims.height} />;
 }
 
-export function DragHandleIcon({ color = Colors.accent, size = 18 }: IconProps) {
-  const dots = [0, 1, 2];
-  return (
-    <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
-      {dots.map((row) =>
-        [0, 1].map((col) => (
-          <Circle
-            key={`${row}-${col}`}
-            cx={5 + col * 8}
-            cy={4 + row * 5}
-            r={1.5}
-            fill={color}
-          />
-        )),
-      )}
-    </Svg>
-  );
+export function DragHandleIcon({ size = 13 }: IconProps) {
+  const dims = sizeByHeight(KomiIconIntrinsic.drag, size);
+  return <KomiIcon source={KomiIconAssets.drag} width={dims.width} height={dims.height} />;
 }
 
 export function PlusIcon({ color = Colors.white, size = 16 }: IconProps) {

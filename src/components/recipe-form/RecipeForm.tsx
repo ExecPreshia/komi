@@ -30,6 +30,7 @@ import {
   useDragScrollMetrics,
 } from '@/components/recipe-form/ReorderableList';
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
+import { KomiActionSheet } from '@/components/ui/KomiActionSheet';
 import { TagChip } from '@/components/ui/TagChip';
 import {
   CameraIcon,
@@ -38,7 +39,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '@/components/ui/form-icons';
-import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 import type { CostLevel, Difficulty, Ingredient, Step } from '@/types/recipe';
 import { COST_LABELS, normalizeTag } from '@/utils/format';
@@ -73,6 +74,7 @@ export function RecipeForm({
     initialValues.baseServings > 0 ? String(initialValues.baseServings) : '',
   );
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const { scrollController, onScroll, onLayout, onContentSizeChange } =
     useDragScrollMetrics(scrollRef);
@@ -146,11 +148,7 @@ export function RecipeForm({
   }
 
   function pickPhoto() {
-    Alert.alert('Photo de la recette', undefined, [
-      { text: 'Galerie', onPress: () => void pickFromLibrary() },
-      { text: 'Appareil photo', onPress: () => void takePhoto() },
-      { text: 'Annuler', style: 'cancel' },
-    ]);
+    setPhotoSheetOpen(true);
   }
 
   function addTag(raw?: string) {
@@ -583,6 +581,17 @@ export function RecipeForm({
           <Text style={styles.saveLabel}>{submitLabel}</Text>
         </Pressable>
       </View>
+
+      <KomiActionSheet
+        visible={photoSheetOpen}
+        title="Photo de la recette"
+        items={[
+          { label: 'Galerie', onPress: () => void pickFromLibrary() },
+          { label: 'Appareil photo', onPress: () => void takePhoto() },
+        ]}
+        cancelLabel="Annuler"
+        onClose={() => setPhotoSheetOpen(false)}
+      />
     </View>
   );
 }
@@ -767,15 +776,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1,
     borderColor: Colors.line,
-    padding: Spacing.three,
+    padding: Spacing.four,
     marginBottom: Spacing.two,
   },
   draggingCard: {
-    shadowColor: Colors.text,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...Shadows.card,
   },
   dragHandle: {
     paddingTop: Spacing.five,
@@ -819,7 +824,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1,
     borderColor: Colors.line,
-    padding: Spacing.three,
+    padding: Spacing.four,
     gap: Spacing.two,
     marginBottom: Spacing.three,
   },

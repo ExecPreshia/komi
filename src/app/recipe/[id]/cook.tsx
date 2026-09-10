@@ -2,7 +2,6 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,7 +13,8 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
+import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 import type { Ingredient, Step } from '@/types/recipe';
 import { formatScaledQuantity, scaleQuantity } from '@/utils/quantity';
@@ -41,6 +41,7 @@ export default function CookingModeScreen() {
   const [index, setIndex] = useState(0);
   const [remaining, setRemaining] = useState<TimerMap>({});
   const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
+  const [quitOpen, setQuitOpen] = useState(false);
   const indexRef = useRef(0);
   const pausedRef = useRef(pausedIds);
   indexRef.current = index;
@@ -191,14 +192,7 @@ export default function CookingModeScreen() {
   }
 
   function quitCooking() {
-    Alert.alert('Quitter le mode cuisiner ?', undefined, [
-      { text: 'Continuer', style: 'cancel' },
-      {
-        text: 'Quitter',
-        style: 'destructive',
-        onPress: () => router.back(),
-      },
-    ]);
+    setQuitOpen(true);
   }
 
   function linkedIngredients(step: Step): Ingredient[] {
@@ -379,6 +373,16 @@ export default function CookingModeScreen() {
           <Text style={styles.nextIcon}>{isLast ? '✓' : '↓'}</Text>
         </Pressable>
       </View>
+
+      <KomiConfirmSheet
+        visible={quitOpen}
+        title="Quitter le mode cuisiner ?"
+        cancelLabel="Continuer"
+        confirmLabel="Quitter"
+        destructive
+        onClose={() => setQuitOpen(false)}
+        onConfirm={() => router.back()}
+      />
     </View>
   );
 }
@@ -526,11 +530,7 @@ const styles = StyleSheet.create({
   stackCard: {
     backgroundColor: Colors.white,
     borderRadius: 24,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    ...Shadows.card,
   },
   prevCard: {
     position: 'absolute',
@@ -543,9 +543,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
     overflow: 'hidden',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 1,
   },
   prevCardBare: {
     height: PREV_BARE_PEEK + 8,
@@ -569,16 +566,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.three,
     overflow: 'hidden',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 1,
   },
   activeCard: {
     position: 'absolute',
     left: 0,
     right: 0,
     zIndex: 3,
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.five,
+    paddingVertical: Spacing.six,
     gap: Spacing.three,
     overflow: 'hidden',
   },
@@ -639,8 +634,8 @@ const styles = StyleSheet.create({
   },
   instruction: {
     fontFamily: Fonts.body,
-    fontSize: 17,
-    lineHeight: 26,
+    fontSize: 20,
+    lineHeight: 28,
     textAlign: 'center',
     color: Colors.text,
   },

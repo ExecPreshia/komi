@@ -21,7 +21,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { Colors, Radii } from '@/constants/theme';
+import { Colors, Radii, Shadows } from '@/constants/theme';
 
 type RenderArgs<T> = {
   item: T;
@@ -523,9 +523,6 @@ const styles = StyleSheet.create({
     top: 0,
   },
   rowActive: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    ...Shadows.card,
   },
 });

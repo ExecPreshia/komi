@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TagOverflowRow } from '@/components/home/TagOverflowRow';
 import { PinIcon } from '@/components/ui/PinIcon';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
 import type { Recipe } from '@/types/recipe';
 import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime, normalizeCostLevel } from '@/utils/format';
 
@@ -14,6 +15,8 @@ type RecipeListCardProps = {
 };
 
 export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardProps) {
+  const [contentWidth, setContentWidth] = useState(0);
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
@@ -25,7 +28,13 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
           </View>
         )}
       </View>
-      <View style={styles.content}>
+      <View
+        style={styles.content}
+        onLayout={(event) => {
+          // Content onLayout includes paddingRight; tags use the inner width.
+          const width = Math.max(0, event.nativeEvent.layout.width - Spacing.two);
+          if (width > 0) setContentWidth(width);
+        }}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
             {recipe.title}
@@ -35,10 +44,10 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
             accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}
             hitSlop={8}
             onPress={onPressPin}>
-            <PinIcon active={recipe.isPinned} />
+            <PinIcon active={recipe.isPinned} size={16} />
           </Pressable>
         </View>
-        <TagOverflowRow tags={recipe.tags} />
+        <TagOverflowRow tags={recipe.tags} containerWidth={contentWidth} />
         <Text style={styles.meta}>
           {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
           {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
@@ -55,11 +64,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     padding: 5,
     gap: Spacing.three,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...Shadows.card,
   },
   imageWrap: {
     width: 110,
@@ -81,7 +86,11 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    overflow: 'hidden',
     paddingVertical: Spacing.two,
     paddingRight: Spacing.two,
     gap: Spacing.two,
@@ -91,11 +100,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.two,
+    minWidth: 0,
   },
   title: {
     ...Typography.section,
     fontSize: 17,
     flex: 1,
+    minWidth: 0,
   },
   meta: {
     ...Typography.caption,

@@ -12,7 +12,7 @@ import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScro
 import { SearchField } from '@/components/ui/SearchField';
 import { GearIcon } from '@/components/ui/icons';
 import { PinIcon } from '@/components/ui/PinIcon';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function HomeScreen() {
@@ -88,7 +88,7 @@ export default function HomeScreen() {
               {pinned.length > 0 ? (
                 <View style={styles.pinnedSection}>
                   <View style={styles.sectionHeader}>
-                    <PinIcon active size={16} />
+                    <PinIcon size={16} />
                     <Text style={styles.sectionTitle}>Au menu</Text>
                   </View>
                   <View style={styles.pinnedTrack}>
@@ -148,11 +148,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingBottom: Spacing.three,
     gap: Spacing.three,
-    shadowColor: Colors.text,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...Shadows.card,
     zIndex: 2,
   },
   headerTop: {
