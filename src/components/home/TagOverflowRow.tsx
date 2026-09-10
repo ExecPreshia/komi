@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { TagChip } from '@/components/ui/TagChip';
@@ -26,16 +26,35 @@ export function TagOverflowRow({ tags, containerWidth }: TagOverflowRowProps) {
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [plusWidth, setPlusWidth] = useState(0);
   const [tagWidths, setTagWidths] = useState<Record<number, number>>({});
+  const [measureEpoch, setMeasureEpoch] = useState(0);
   const tagsKey = tags.join('\u0001');
+  const prevBudgetRef = useRef(0);
 
   const availableWidth =
     typeof containerWidth === 'number' && containerWidth > 0 ? containerWidth : measuredWidth;
 
-  useEffect(() => {
+  function resetMeasures() {
     setTagWidths({});
-    setMeasuredWidth(0);
     setPlusWidth(0);
+    setMeasureEpoch((epoch) => epoch + 1);
+  }
+
+  useEffect(() => {
+    setMeasuredWidth(0);
+    resetMeasures();
   }, [tagsKey]);
+
+  // When the width budget settles or changes, remount the measure lane so
+  // onLayout re-fires. Clearing widths without remounting leaves empty
+  // tagWidths forever (children keep the same keys and skip layout).
+  useEffect(() => {
+    const budget = availableWidth;
+    const prev = prevBudgetRef.current;
+    prevBudgetRef.current = budget;
+    if (budget <= 0) return;
+    if (prev > 0 && Math.abs(budget - prev) < 1) return;
+    resetMeasures();
+  }, [availableWidth]);
 
   const measuredAll =
     tags.length === 0 || tags.every((_, index) => typeof tagWidths[index] === 'number');
@@ -78,13 +97,16 @@ export function TagOverflowRow({ tags, containerWidth }: TagOverflowRowProps) {
       onLayout={(event) => {
         const width = event.nativeEvent.layout.width;
         if (typeof containerWidth === 'number' && containerWidth > 0) return;
-        if (width > 0) setMeasuredWidth(width);
+        if (width <= 0) return;
+        setMeasuredWidth((current) => (Math.abs(current - width) < 0.5 ? current : width));
       }}>
       {/*
         Unconstrained measure lane: parent overflow/width must not compress
         chips or onLayout widths stay too small and +N never appears.
+        measureEpoch remounts this lane whenever the width budget changes.
       */}
       <View
+        key={`measure-${measureEpoch}`}
         pointerEvents="none"
         collapsable={false}
         style={styles.measureLane}

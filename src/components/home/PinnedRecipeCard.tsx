@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +15,8 @@ type PinnedRecipeCardProps = {
 };
 
 export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCardProps) {
+  const [bodyWidth, setBodyWidth] = useState(0);
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
@@ -25,7 +28,14 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
           </View>
         )}
       </View>
-      <View style={styles.body}>
+      <View
+        style={styles.body}
+        onLayout={(event) => {
+          // Body onLayout includes horizontal padding; tags use the inner width.
+          const width = Math.max(0, event.nativeEvent.layout.width - Spacing.two * 2);
+          if (width <= 0) return;
+          setBodyWidth((current) => (Math.abs(current - width) < 0.5 ? current : width));
+        }}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
             {recipe.title}
@@ -38,7 +48,11 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
             <PinIcon active size={16} />
           </Pressable>
         </View>
-        <TagOverflowRow tags={recipe.tags} />
+        <TagOverflowRow
+          key={bodyWidth > 0 ? `w-${Math.round(bodyWidth)}` : 'pending'}
+          tags={recipe.tags}
+          containerWidth={bodyWidth}
+        />
         <Text style={styles.meta}>
           {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
           {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}

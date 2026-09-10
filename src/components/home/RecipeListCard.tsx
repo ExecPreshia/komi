@@ -33,7 +33,8 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
         onLayout={(event) => {
           // Content onLayout includes paddingRight; tags use the inner width.
           const width = Math.max(0, event.nativeEvent.layout.width - Spacing.two);
-          if (width > 0) setContentWidth(width);
+          if (width <= 0) return;
+          setContentWidth((current) => (Math.abs(current - width) < 0.5 ? current : width));
         }}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
@@ -47,7 +48,11 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
             <PinIcon active={recipe.isPinned} size={16} />
           </Pressable>
         </View>
-        <TagOverflowRow tags={recipe.tags} containerWidth={contentWidth} />
+        <TagOverflowRow
+          key={contentWidth > 0 ? `w-${Math.round(contentWidth)}` : 'pending'}
+          tags={recipe.tags}
+          containerWidth={contentWidth}
+        />
         <Text style={styles.meta}>
           {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
           {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
