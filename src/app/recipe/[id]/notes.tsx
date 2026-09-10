@@ -1,7 +1,6 @@
 import { type Href, Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
+import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -21,6 +21,7 @@ export default function RecipeNotesScreen() {
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
   const updateRecipe = useKomiStore((state) => state.updateRecipe);
   const [notes, setNotes] = useState(recipe?.notes ?? '');
+  const [savedOpen, setSavedOpen] = useState(false);
 
   if (!recipe) {
     return (
@@ -38,12 +39,7 @@ export default function RecipeNotesScreen() {
   function saveNotes() {
     const trimmed = notes.trim();
     updateRecipe(activeRecipe.id, { notes: trimmed.length > 0 ? trimmed : null });
-    Alert.alert('Note enregistrée', `Note bien enregistrée pour ${activeRecipe.title}`, [
-      {
-        text: 'OK',
-        onPress: () => router.replace('/' as Href),
-      },
-    ]);
+    setSavedOpen(true);
   }
 
   return (
@@ -89,6 +85,16 @@ export default function RecipeNotesScreen() {
           <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
         </Pressable>
       </View>
+
+      <KomiConfirmSheet
+        visible={savedOpen}
+        title="Note enregistrée"
+        message={`Note bien enregistrée pour ${activeRecipe.title}`}
+        confirmLabel="OK"
+        hideCancel
+        onClose={() => setSavedOpen(false)}
+        onConfirm={() => router.replace('/' as Href)}
+      />
     </View>
   );
 }
