@@ -333,15 +333,18 @@ export function RecipeForm({
               }
               placeholder={`Sous-étape ${subIndex + 2}`}
               placeholderTextColor={Colors.textMuted}
-              style={[styles.input, styles.flex]}
+              multiline
+              textAlignVertical="top"
+              style={[styles.input, styles.stepBody, styles.flex]}
             />
             <Pressable
               onPress={() =>
                 updateStep(item.id, {
                   subSteps: item.subSteps.filter((entry) => entry.id !== sub.id),
                 })
-              }>
-              <TrashIcon size={16} />
+              }
+              style={styles.trashBtn}>
+              <TrashIcon />
             </Pressable>
           </View>
         ))}
@@ -835,7 +838,7 @@ const styles = StyleSheet.create({
   },
   extraSubStep: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.two,
   },
   flex: {
