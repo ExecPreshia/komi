@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,16 +11,20 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CategoryField } from '@/components/recipe-form/CategoryField';
 import {
   createEmptyIngredient,
   createEmptyStep,
   createEmptySubStep,
-  moveItem,
+  reindexItems,
+  renumberStepTitles,
   parseOptionalNumber,
   type RecipeFormValues,
   sanitizeFormValues,
   validateRecipeForm,
 } from '@/components/recipe-form/form-model';
+import { ReorderDragHandle, ReorderableList } from '@/components/recipe-form/ReorderableList';
+import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { TagChip } from '@/components/ui/TagChip';
 import {
   CameraIcon,
@@ -31,6 +34,7 @@ import {
   TrashIcon,
 } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useKomiStore } from '@/store/komi-store';
 import type { CostLevel, Difficulty, Ingredient, Step } from '@/types/recipe';
 import { COST_LABELS, normalizeTag } from '@/utils/format';
 
@@ -54,6 +58,7 @@ export function RecipeForm({
   onSubmit,
 }: RecipeFormProps) {
   const insets = useSafeAreaInsets();
+  const recipes = useKomiStore((state) => state.recipes);
   const [values, setValues] = useState<RecipeFormValues>(initialValues);
   const [tagDraft, setTagDraft] = useState('');
   const [timeDraft, setTimeDraft] = useState(
@@ -62,17 +67,48 @@ export function RecipeForm({
   const [servingsDraft, setServingsDraft] = useState(
     initialValues.baseServings > 0 ? String(initialValues.baseServings) : '',
   );
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const namedIngredients = useMemo(
     () => values.ingredients.filter((item) => item.name.trim()),
     [values.ingredients],
   );
 
+  const recipeCategories = useMemo(() => {
+    const list: string[] = [];
+    const seen = new Set<string>();
+    for (const item of values.ingredients) {
+      const category = item.category?.trim();
+      if (!category) continue;
+      const key = category.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(category);
+    }
+    return list;
+  }, [values.ingredients]);
+
+  const suggestedTags = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const recipe of recipes) {
+      for (const tag of recipe.tags) {
+        const key = normalizeTag(tag);
+        if (!key || byKey.has(key)) continue;
+        byKey.set(key, tag.trim());
+      }
+    }
+    const selected = new Set(values.tags.map((tag) => normalizeTag(tag)));
+    return Array.from(byKey.entries())
+      .filter(([key]) => !selected.has(key))
+      .map(([, label]) => label)
+      .sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [recipes, values.tags]);
+
   function update<K extends keyof RecipeFormValues>(key: K, value: RecipeFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
-  async function pickPhoto() {
+  async function pickFromLibrary() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Permission requise', "Autorisez l'accès à la photothèque pour ajouter une photo.");
@@ -87,27 +123,52 @@ export function RecipeForm({
     }
   }
 
-  function addTag() {
-    const tag = normalizeTag(tagDraft);
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission requise', 'Autorisez l’accès à la caméra pour photographier la recette.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      update('photoUri', result.assets[0].uri);
+    }
+  }
+
+  function pickPhoto() {
+    Alert.alert('Photo de la recette', undefined, [
+      { text: 'Galerie', onPress: () => void pickFromLibrary() },
+      { text: 'Appareil photo', onPress: () => void takePhoto() },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  }
+
+  function addTag(raw?: string) {
+    const tag = normalizeTag(raw ?? tagDraft);
     if (!tag) return;
-    if (!values.tags.includes(tag)) {
+    const existing = values.tags.find((item) => normalizeTag(item) === tag);
+    if (!existing) {
       update('tags', [...values.tags, tag]);
     }
     setTagDraft('');
   }
 
   function updateIngredient(id: string, patch: Partial<Ingredient>) {
-    update(
-      'ingredients',
-      values.ingredients.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
+    setValues((current) => ({
+      ...current,
+      ingredients: current.ingredients.map((item) =>
+        item.id === id ? { ...item, ...patch } : item,
+      ),
+    }));
   }
 
   function updateStep(id: string, patch: Partial<Step>) {
-    update(
-      'steps',
-      values.steps.map((step) => (step.id === id ? { ...step, ...patch } : step)),
-    );
+    setValues((current) => ({
+      ...current,
+      steps: current.steps.map((step) => (step.id === id ? { ...step, ...patch } : step)),
+    }));
   }
 
   function setStepPrimaryBody(step: Step, body: string) {
@@ -132,12 +193,209 @@ export function RecipeForm({
     onSubmit(sanitizeFormValues(nextValues));
   }
 
+  function renderIngredient({ item, isActive }: { item: Ingredient; index: number; isActive: boolean }) {
+    return (
+      <View style={[styles.ingredientRow, isActive && styles.draggingCard]}>
+        <ReorderDragHandle>
+          <View
+            hitSlop={8}
+            style={styles.dragHandle}
+            accessibilityLabel="Réordonner l'ingrédient">
+            <DragHandleIcon color={Colors.accent} />
+          </View>
+        </ReorderDragHandle>
+        <View style={styles.ingredientFields}>
+          <FieldLabel text="Ingrédient *" />
+          <TextInput
+            value={item.name}
+            onChangeText={(name) => updateIngredient(item.id, { name })}
+            placeholder="Ex : Carottes"
+            placeholderTextColor={Colors.textMuted}
+            autoCapitalize="sentences"
+            style={styles.input}
+          />
+          <View style={styles.qtyRow}>
+            <View style={styles.qtyField}>
+              <FieldLabel text="Qté" />
+              <TextInput
+                value={item.quantity == null ? '' : String(item.quantity)}
+                onChangeText={(text) =>
+                  updateIngredient(item.id, { quantity: parseOptionalNumber(text) })
+                }
+                keyboardType="decimal-pad"
+                placeholder="—"
+                placeholderTextColor={Colors.textMuted}
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.qtyField}>
+              <FieldLabel text="Unité" />
+              <TextInput
+                value={item.unit ?? ''}
+                onChangeText={(unit) => updateIngredient(item.id, { unit })}
+                placeholder="g"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+            </View>
+          </View>
+          <FieldLabel text="Catégorie" />
+          <CategoryField
+            value={item.category ?? ''}
+            recipeCategories={recipeCategories}
+            onChange={(category) =>
+              updateIngredient(item.id, { category: category.trim() ? category : null })
+            }
+          />
+        </View>
+        <Pressable
+          accessibilityLabel="Supprimer l'ingrédient"
+          onPress={() =>
+            setValues((current) => ({
+              ...current,
+              ingredients: reindexItems(
+                current.ingredients.filter((entry) => entry.id !== item.id),
+              ),
+            }))
+          }
+          style={styles.trashBtn}>
+          <TrashIcon />
+        </Pressable>
+      </View>
+    );
+  }
+
+  function renderStep({ item, index, isActive }: { item: Step; index: number; isActive: boolean }) {
+    const primaryBody = item.subSteps[0]?.body ?? '';
+    const extraSubSteps = item.subSteps.slice(1);
+
+    return (
+      <View style={[styles.stepCard, isActive && styles.draggingCard]}>
+        <View style={styles.stepHeader}>
+          <ReorderDragHandle>
+            <View
+              hitSlop={8}
+              style={styles.dragHandle}
+              accessibilityLabel="Réordonner l'étape">
+              <DragHandleIcon color={Colors.accent} />
+            </View>
+          </ReorderDragHandle>
+          <TextInput
+            value={item.title}
+            onChangeText={(title) => updateStep(item.id, { title })}
+            placeholder={`Étape ${index + 1}`}
+            placeholderTextColor={Colors.textMuted}
+            style={[styles.input, styles.stepTitleInput]}
+          />
+          <Pressable
+            accessibilityLabel="Supprimer l'étape"
+            onPress={() =>
+              setValues((current) => ({
+                ...current,
+                steps: renumberStepTitles(current.steps.filter((entry) => entry.id !== item.id)),
+              }))
+            }
+            style={styles.trashBtn}>
+            <TrashIcon />
+          </Pressable>
+        </View>
+
+        <TextInput
+          value={primaryBody}
+          onChangeText={(body) => setStepPrimaryBody(item, body)}
+          placeholder="Décrivez cette étape... *"
+          placeholderTextColor={Colors.textMuted}
+          multiline
+          textAlignVertical="top"
+          style={[styles.input, styles.stepBody]}
+        />
+
+        {extraSubSteps.map((sub, subIndex) => (
+          <View key={sub.id} style={styles.extraSubStep}>
+            <TextInput
+              value={sub.body}
+              onChangeText={(body) =>
+                updateStep(item.id, {
+                  subSteps: item.subSteps.map((entry) =>
+                    entry.id === sub.id ? { ...entry, body } : entry,
+                  ),
+                })
+              }
+              placeholder={`Sous-étape ${subIndex + 2}`}
+              placeholderTextColor={Colors.textMuted}
+              style={[styles.input, styles.flex]}
+            />
+            <Pressable
+              onPress={() =>
+                updateStep(item.id, {
+                  subSteps: item.subSteps.filter((entry) => entry.id !== sub.id),
+                })
+              }>
+              <TrashIcon size={16} />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable
+          onPress={() =>
+            updateStep(item.id, {
+              subSteps:
+                item.subSteps.length === 0
+                  ? [createEmptySubStep(0), createEmptySubStep(1)]
+                  : [...item.subSteps, createEmptySubStep(item.subSteps.length)],
+            })
+          }>
+          <Text style={styles.addSubStep}>+ Ajouter une sous-étape</Text>
+        </Pressable>
+
+        <FieldLabel text="Ingrédients de l'étape" />
+        {namedIngredients.length === 0 ? (
+          <Text style={styles.helper}>Ajoutez d’abord des ingrédients pour les lier.</Text>
+        ) : (
+          <View style={styles.wrapChips}>
+            {namedIngredients.map((ingredient) => {
+              const selected = item.ingredientIds.includes(ingredient.id);
+              return (
+                <TagChip
+                  key={ingredient.id}
+                  label={ingredient.name}
+                  selected={selected}
+                  onPress={() =>
+                    updateStep(item.id, {
+                      ingredientIds: selected
+                        ? item.ingredientIds.filter((id) => id !== ingredient.id)
+                        : [...item.ingredientIds, ingredient.id],
+                    })
+                  }
+                />
+              );
+            })}
+          </View>
+        )}
+
+        <FieldLabel text="Minuteur (optionnel)" />
+        <TextInput
+          value={formatTimerInput(item.timerSeconds)}
+          onChangeText={(text) => updateStep(item.id, { timerSeconds: parseTimerInput(text) })}
+          placeholder="0:00"
+          placeholderTextColor={Colors.textMuted}
+          keyboardType="numbers-and-punctuation"
+          style={[styles.input, styles.timerInput]}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
-      <ScrollView
+      <AppKeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        bottomOffset={24}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        scrollEnabled={scrollEnabled}
         showsVerticalScrollIndicator={false}>
         <FieldLabel text="Titre *" />
         <TextInput
@@ -232,11 +490,13 @@ export function RecipeForm({
             onChangeText={setTagDraft}
             placeholder="Ex : rapide, chaud, riz"
             placeholderTextColor={Colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
             style={[styles.input, styles.tagInput]}
-            onSubmitEditing={addTag}
+            onSubmitEditing={() => addTag()}
             returnKeyType="done"
           />
-          <Pressable accessibilityLabel="Ajouter un tag" style={styles.tagAdd} onPress={addTag}>
+          <Pressable accessibilityLabel="Ajouter un tag" style={styles.tagAdd} onPress={() => addTag()}>
             <PlusIcon color={Colors.white} size={18} />
           </Pressable>
         </View>
@@ -246,84 +506,27 @@ export function RecipeForm({
               <TagChip
                 key={tag}
                 label={tag}
-                onRemove={() => update('tags', values.tags.filter((item) => item !== tag))}
+                selected
+                onPress={() => update('tags', values.tags.filter((item) => item !== tag))}
               />
+            ))}
+          </View>
+        ) : null}
+        {suggestedTags.length > 0 ? (
+          <View style={styles.wrapChips}>
+            {suggestedTags.map((tag) => (
+              <TagChip key={tag} label={tag} onPress={() => addTag(tag)} />
             ))}
           </View>
         ) : null}
 
         <Text style={styles.sectionTitle}>Ingrédients</Text>
-        {values.ingredients.map((ingredient, index) => (
-          <View key={ingredient.id} style={styles.ingredientRow}>
-            <View style={styles.reorderCol}>
-              <Pressable
-                disabled={index === 0}
-                onPress={() => update('ingredients', moveItem(values.ingredients, index, -1))}
-                hitSlop={6}>
-                <DragHandleIcon color={index === 0 ? Colors.line : Colors.accent} />
-              </Pressable>
-              <Pressable
-                disabled={index === values.ingredients.length - 1}
-                onPress={() => update('ingredients', moveItem(values.ingredients, index, 1))}
-                hitSlop={6}
-                style={styles.reorderDown}>
-                <Text
-                  style={[
-                    styles.reorderHint,
-                    index === values.ingredients.length - 1 && styles.reorderHintDisabled,
-                  ]}>
-                  ↓
-                </Text>
-              </Pressable>
-            </View>
-            <View style={styles.ingredientFields}>
-              <FieldLabel text="Ingrédient *" />
-              <TextInput
-                value={ingredient.name}
-                onChangeText={(name) => updateIngredient(ingredient.id, { name })}
-                placeholder="Ex : Carottes"
-                placeholderTextColor={Colors.textMuted}
-                style={styles.input}
-              />
-              <View style={styles.qtyRow}>
-                <View style={styles.qtyField}>
-                  <FieldLabel text="Qté" />
-                  <TextInput
-                    value={ingredient.quantity == null ? '' : String(ingredient.quantity)}
-                    onChangeText={(text) =>
-                      updateIngredient(ingredient.id, { quantity: parseOptionalNumber(text) })
-                    }
-                    keyboardType="decimal-pad"
-                    placeholder="—"
-                    placeholderTextColor={Colors.textMuted}
-                    style={styles.input}
-                  />
-                </View>
-                <View style={styles.qtyField}>
-                  <FieldLabel text="Unité" />
-                  <TextInput
-                    value={ingredient.unit ?? ''}
-                    onChangeText={(unit) => updateIngredient(ingredient.id, { unit })}
-                    placeholder="g"
-                    placeholderTextColor={Colors.textMuted}
-                    style={styles.input}
-                  />
-                </View>
-              </View>
-            </View>
-            <Pressable
-              accessibilityLabel="Supprimer l'ingrédient"
-              onPress={() =>
-                update(
-                  'ingredients',
-                  values.ingredients.filter((item) => item.id !== ingredient.id),
-                )
-              }
-              style={styles.trashBtn}>
-              <TrashIcon />
-            </Pressable>
-          </View>
-        ))}
+        <ReorderableList
+          data={values.ingredients}
+          onReorder={(data) => update('ingredients', reindexItems(data))}
+          onDragStateChange={(dragging) => setScrollEnabled(!dragging)}
+          renderItem={renderIngredient}
+        />
         <Pressable
           style={styles.dashedAdd}
           onPress={() =>
@@ -336,138 +539,12 @@ export function RecipeForm({
         </Pressable>
 
         <Text style={styles.sectionTitle}>Étapes</Text>
-        {values.steps.map((step, index) => {
-          const primaryBody = step.subSteps[0]?.body ?? '';
-          const extraSubSteps = step.subSteps.slice(1);
-          return (
-            <View key={step.id} style={styles.stepCard}>
-              <View style={styles.stepHeader}>
-                <View style={styles.reorderCol}>
-                  <Pressable
-                    disabled={index === 0}
-                    onPress={() => update('steps', moveItem(values.steps, index, -1))}
-                    hitSlop={6}>
-                    <DragHandleIcon color={index === 0 ? Colors.line : Colors.accent} />
-                  </Pressable>
-                  <Pressable
-                    disabled={index === values.steps.length - 1}
-                    onPress={() => update('steps', moveItem(values.steps, index, 1))}
-                    hitSlop={6}>
-                    <Text
-                      style={[
-                        styles.reorderHint,
-                        index === values.steps.length - 1 && styles.reorderHintDisabled,
-                      ]}>
-                      ↓
-                    </Text>
-                  </Pressable>
-                </View>
-                <TextInput
-                  value={step.title}
-                  onChangeText={(title) => updateStep(step.id, { title })}
-                  placeholder={`Étape ${index + 1}`}
-                  placeholderTextColor={Colors.textMuted}
-                  style={[styles.input, styles.stepTitleInput]}
-                />
-                <Pressable
-                  accessibilityLabel="Supprimer l'étape"
-                  onPress={() =>
-                    update(
-                      'steps',
-                      values.steps.filter((item) => item.id !== step.id),
-                    )
-                  }
-                  style={styles.trashBtn}>
-                  <TrashIcon />
-                </Pressable>
-              </View>
-
-              <TextInput
-                value={primaryBody}
-                onChangeText={(body) => setStepPrimaryBody(step, body)}
-                placeholder="Décrivez cette étape... *"
-                placeholderTextColor={Colors.textMuted}
-                multiline
-                textAlignVertical="top"
-                style={[styles.input, styles.stepBody]}
-              />
-
-              {extraSubSteps.map((sub, subIndex) => (
-                <View key={sub.id} style={styles.extraSubStep}>
-                  <TextInput
-                    value={sub.body}
-                    onChangeText={(body) =>
-                      updateStep(step.id, {
-                        subSteps: step.subSteps.map((item) =>
-                          item.id === sub.id ? { ...item, body } : item,
-                        ),
-                      })
-                    }
-                    placeholder={`Sous-étape ${subIndex + 2}`}
-                    placeholderTextColor={Colors.textMuted}
-                    style={[styles.input, styles.flex]}
-                  />
-                  <Pressable
-                    onPress={() =>
-                      updateStep(step.id, {
-                        subSteps: step.subSteps.filter((item) => item.id !== sub.id),
-                      })
-                    }>
-                    <TrashIcon size={16} />
-                  </Pressable>
-                </View>
-              ))}
-              <Pressable
-                onPress={() =>
-                  updateStep(step.id, {
-                    subSteps:
-                      step.subSteps.length === 0
-                        ? [createEmptySubStep(0), createEmptySubStep(1)]
-                        : [...step.subSteps, createEmptySubStep(step.subSteps.length)],
-                  })
-                }>
-                <Text style={styles.addSubStep}>+ Ajouter une sous-étape</Text>
-              </Pressable>
-
-              <FieldLabel text="Ingrédients de l'étape" />
-              {namedIngredients.length === 0 ? (
-                <Text style={styles.helper}>
-                  Ajoutez d’abord des ingrédients pour les lier.
-                </Text>
-              ) : (
-                <View style={styles.wrapChips}>
-                  {namedIngredients.map((ingredient) => {
-                    const selected = step.ingredientIds.includes(ingredient.id);
-                    return (
-                      <TagChip
-                        key={ingredient.id}
-                        label={ingredient.name}
-                        selected={selected}
-                        onPress={() =>
-                          updateStep(step.id, {
-                            ingredientIds: selected
-                              ? step.ingredientIds.filter((id) => id !== ingredient.id)
-                              : [...step.ingredientIds, ingredient.id],
-                          })
-                        }
-                      />
-                    );
-                  })}
-                </View>
-              )}
-
-              <FieldLabel text="Minuteur (optionnel)" />
-              <TextInput
-                value={formatTimerInput(step.timerSeconds)}
-                onChangeText={(text) => updateStep(step.id, { timerSeconds: parseTimerInput(text) })}
-                placeholder="0:00"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="numbers-and-punctuation"
-                style={[styles.input, styles.timerInput]}
-              />
-            </View>
-          );
-        })}
+        <ReorderableList
+          data={values.steps}
+          onReorder={(data) => update('steps', renumberStepTitles(data))}
+          onDragStateChange={(dragging) => setScrollEnabled(!dragging)}
+          renderItem={renderStep}
+        />
         <Pressable
           style={styles.dashedAdd}
           onPress={() =>
@@ -481,7 +558,7 @@ export function RecipeForm({
           }>
           <Text style={styles.dashedAddLabel}>+ Ajouter une étape</Text>
         </Pressable>
-      </ScrollView>
+      </AppKeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.three) }]}>
         <Pressable style={styles.saveButton} onPress={handleSubmit}>
@@ -675,21 +752,16 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     marginBottom: Spacing.two,
   },
-  reorderCol: {
-    alignItems: 'center',
-    gap: 2,
+  draggingCard: {
+    shadowColor: Colors.text,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  dragHandle: {
     paddingTop: Spacing.five,
-  },
-  reorderDown: {
-    marginTop: 2,
-  },
-  reorderHint: {
-    fontFamily: Fonts.bodyBold,
-    fontSize: 12,
-    color: Colors.accent,
-  },
-  reorderHintDisabled: {
-    color: Colors.line,
+    paddingHorizontal: Spacing.one,
   },
   ingredientFields: {
     flex: 1,

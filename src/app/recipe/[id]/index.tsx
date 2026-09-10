@@ -1,19 +1,21 @@
 import { Image } from 'expo-image';
 import { type Href, router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Alert,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
+  type TextInput as TextInputType,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { TagChip } from '@/components/ui/TagChip';
 import { PinIcon } from '@/components/ui/PinIcon';
 import {
@@ -62,10 +64,15 @@ export default function RecipeDetailScreen() {
 
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
+  const updateRecipe = useKomiStore((state) => state.updateRecipe);
 
   useEffect(() => {
     setCheckedIds(new Set());
     setTab('ingredients');
+    setEditingNotes(false);
+    setNotesDraft('');
   }, [recipe?.id]);
 
   const groups = useMemo(
@@ -138,22 +145,36 @@ export default function RecipeDetailScreen() {
   }
 
   function handleAddToShopping() {
+    if (uncheckedIngredients.length === 0) return;
     const count = addIngredientsToShoppingList(currentRecipe, uncheckedIngredients, servings);
-    if (count === 0) {
-      Alert.alert('Liste de courses', 'Tous les ingrédients sont déjà cochés.');
-      return;
-    }
+    if (count === 0) return;
     Alert.alert('Liste de courses', `${count} ingrédient${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}.`);
   }
 
+  function openNotesEditor() {
+    setMenuOpen(false);
+    setTab('preparation');
+    setNotesDraft(currentRecipe.notes ?? '');
+    setEditingNotes(true);
+  }
+
+  function saveNotes() {
+    const trimmed = notesDraft.trim();
+    updateRecipe(currentRecipe.id, { notes: trimmed.length > 0 ? trimmed : null });
+    setEditingNotes(false);
+  }
+
   const footerPadding = Math.max(insets.bottom, Spacing.three);
+  const shoppingDisabled = uncheckedIngredients.length === 0;
 
   return (
     <View style={styles.root}>
-      <ScrollView
+      <AppKeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: tab === 'ingredients' ? 160 : 110 }}
-        showsVerticalScrollIndicator={false}>
+        bottomOffset={tab === 'ingredients' ? 160 : 110}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           {recipe.photoUri ? (
             <Image source={{ uri: recipe.photoUri }} style={styles.heroImage} contentFit="cover" />
@@ -162,22 +183,6 @@ export default function RecipeDetailScreen() {
               <Text style={styles.heroPlaceholderText}>Sans photo</Text>
             </View>
           )}
-
-          <View style={[styles.heroActions, { top: insets.top + Spacing.two }]}>
-            <RoundButton onPress={() => router.back()} accessibilityLabel="Retour">
-              <BackArrowIcon />
-            </RoundButton>
-            <View style={styles.heroActionsRight}>
-              <RoundButton
-                onPress={() => togglePin(recipe.id)}
-                accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}>
-                <PinIcon active={recipe.isPinned} />
-              </RoundButton>
-              <RoundButton onPress={() => setMenuOpen(true)} accessibilityLabel="Plus d'options">
-                <MoreIcon />
-              </RoundButton>
-            </View>
-          </View>
         </View>
 
         <View style={styles.sheet}>
@@ -232,18 +237,44 @@ export default function RecipeDetailScreen() {
                   onToggleChecked={toggleChecked}
                 />
               ) : (
-                <PreparationPanel recipe={recipe} />
+                <PreparationPanel
+                  recipe={recipe}
+                  editingNotes={editingNotes}
+                  notesDraft={notesDraft}
+                  onChangeNotes={setNotesDraft}
+                  onSaveNotes={saveNotes}
+                  onCancelNotes={() => setEditingNotes(false)}
+                />
               )}
             </View>
           </GestureDetector>
         </View>
-      </ScrollView>
+      </AppKeyboardAwareScrollView>
+
+      <View style={[styles.stickyActions, { top: insets.top + Spacing.two }]} pointerEvents="box-none">
+        <RoundButton onPress={() => router.back()} accessibilityLabel="Retour">
+          <BackArrowIcon />
+        </RoundButton>
+        <View style={styles.heroActionsRight}>
+          <RoundButton
+            onPress={() => togglePin(recipe.id)}
+            accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}>
+            <PinIcon active={recipe.isPinned} />
+          </RoundButton>
+          <RoundButton onPress={() => setMenuOpen(true)} accessibilityLabel="Plus d'options">
+            <MoreIcon />
+          </RoundButton>
+        </View>
+      </View>
 
       <View style={[styles.footer, { paddingBottom: footerPadding }]}>
         {tab === 'ingredients' ? (
-          <Pressable style={styles.shoppingButton} onPress={handleAddToShopping}>
+          <Pressable
+            style={[styles.shoppingButton, shoppingDisabled && styles.shoppingButtonDisabled]}
+            disabled={shoppingDisabled}
+            onPress={handleAddToShopping}>
             <CartGlyphIcon />
-            <Text style={styles.shoppingLabel}>
+            <Text style={[styles.shoppingLabel, shoppingDisabled && styles.shoppingLabelDisabled]}>
               Ajouter [{uncheckedIngredients.length}] à la liste de courses
             </Text>
           </Pressable>
@@ -272,6 +303,9 @@ export default function RecipeDetailScreen() {
                 router.push(`/recipe/${recipe.id}/edit` as Href);
               }}>
               <Text style={styles.menuItemLabel}>Modifier</Text>
+            </Pressable>
+            <Pressable style={styles.menuItem} onPress={openNotesEditor}>
+              <Text style={styles.menuItemLabel}>Ajouter une remarque</Text>
             </Pressable>
             <Pressable style={styles.menuItem} onPress={handleDelete}>
               <Text style={[styles.menuItemLabel, styles.menuItemDanger]}>Supprimer</Text>
@@ -384,7 +418,22 @@ function IngredientsPanel({
   );
 }
 
-function PreparationPanel({ recipe }: { recipe: Recipe }) {
+function PreparationPanel({
+  recipe,
+  editingNotes,
+  notesDraft,
+  onChangeNotes,
+  onSaveNotes,
+  onCancelNotes,
+}: {
+  recipe: Recipe;
+  editingNotes: boolean;
+  notesDraft: string;
+  onChangeNotes: (value: string) => void;
+  onSaveNotes: () => void;
+  onCancelNotes: () => void;
+}) {
+  const notesInputRef = useRef<TextInputType>(null);
   const notes = recipe.notes?.trim();
   const noteLines = notes
     ? notes
@@ -392,20 +441,53 @@ function PreparationPanel({ recipe }: { recipe: Recipe }) {
         .map((line) => line.replace(/^•\s*/, '').trim())
         .filter(Boolean)
     : [];
+  const showNotesCard = editingNotes || noteLines.length > 0;
+
+  useEffect(() => {
+    if (!editingNotes) return;
+    const frame = requestAnimationFrame(() => {
+      notesInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editingNotes]);
 
   return (
     <View style={styles.panel}>
-      {noteLines.length > 0 ? (
+      {showNotesCard ? (
         <View style={styles.notesCard}>
           <View style={styles.notesHeader}>
             <LightbulbIcon />
             <Text style={styles.notesTitle}>Remarques</Text>
           </View>
-          {noteLines.map((line) => (
-            <Text key={line} style={styles.noteLine}>
-              • {line}
-            </Text>
-          ))}
+          {editingNotes ? (
+            <>
+              <TextInput
+                ref={notesInputRef}
+                value={notesDraft}
+                onChangeText={onChangeNotes}
+                placeholder="Ex : mettre moins de sel, très bon avec une salade…"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                textAlignVertical="top"
+                style={styles.notesInput}
+                autoFocus
+              />
+              <View style={styles.notesActions}>
+                <Pressable onPress={onCancelNotes} hitSlop={8}>
+                  <Text style={styles.notesCancel}>Annuler</Text>
+                </Pressable>
+                <Pressable onPress={onSaveNotes} style={styles.notesSave}>
+                  <Text style={styles.notesSaveLabel}>Enregistrer</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            noteLines.map((line) => (
+              <Text key={line} style={styles.noteLine}>
+                • {line}
+              </Text>
+            ))
+          )}
         </View>
       ) : null}
 
@@ -484,6 +566,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  stickyActions: {
+    position: 'absolute',
+    left: Spacing.four,
+    right: Spacing.four,
+    zIndex: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   heroActionsRight: {
     flexDirection: 'row',
     gap: Spacing.two,
@@ -493,6 +583,8 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: Radii.pill,
     backgroundColor: Colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(44, 39, 35, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -712,6 +804,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.accent,
   },
+  notesInput: {
+    minHeight: 96,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    fontFamily: Fonts.body,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  notesActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  notesCancel: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  notesSave: {
+    backgroundColor: Colors.accent,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one + 2,
+  },
+  notesSaveLabel: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 14,
+    color: Colors.white,
+  },
   stepsHeading: {
     fontFamily: Fonts.sansBold,
     fontSize: 18,
@@ -766,10 +893,17 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
   },
+  shoppingButtonDisabled: {
+    backgroundColor: Colors.line,
+  },
   shoppingLabel: {
     fontFamily: Fonts.bodyMedium,
     fontSize: 15,
     color: Colors.white,
+  },
+  shoppingLabelDisabled: {
+    color: Colors.white,
+    opacity: 0.85,
   },
   cookButton: {
     minHeight: 52,

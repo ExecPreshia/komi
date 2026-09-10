@@ -1,12 +1,14 @@
 import { type Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { KomiLogo } from '@/components/brand/KomiLogo';
 import { PinnedRecipeCard } from '@/components/home/PinnedRecipeCard';
 import { RecipeListCard } from '@/components/home/RecipeListCard';
 import { TagFilterRow } from '@/components/home/TagFilterRow';
+import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { SearchField } from '@/components/ui/SearchField';
 import { GearIcon } from '@/components/ui/icons';
 import { PinIcon } from '@/components/ui/PinIcon';
@@ -47,86 +49,89 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.headerBlock}>
-        <View style={styles.headerTop}>
-          <KomiLogo width={87} height={32} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Paramètres"
-            style={styles.settingsButton}
-            onPress={() => router.push('/settings' as Href)}>
-            <GearIcon color={Colors.text} />
-          </Pressable>
-        </View>
-
-        <View style={styles.searchBlock}>
-          <SearchField value={query} onChangeText={setQuery} />
-        </View>
-
-        {allTags.length > 0 ? (
-          <TagFilterRow tags={allTags} selectedTag={selectedTag} onSelect={setSelectedTag} />
-        ) : null}
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        {recipes.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Mes recettes</Text>
-            <Text style={styles.emptyBody}>
-              Aucune recette pour le moment. Appuyez sur + pour créer une nouvelle recette.
-            </Text>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <View style={styles.headerBlock}>
+          <View style={styles.headerTop}>
+            <KomiLogo width={87} height={32} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Paramètres"
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings' as Href)}>
+              <GearIcon color={Colors.text} />
+            </Pressable>
           </View>
-        ) : (
-          <>
-            {pinned.length > 0 ? (
-              <View style={styles.pinnedSection}>
-                <View style={styles.sectionHeader}>
-                  <PinIcon active size={16} />
-                  <Text style={styles.sectionTitle}>Au menu</Text>
+
+          <View style={styles.searchBlock}>
+            <SearchField value={query} onChangeText={setQuery} />
+          </View>
+
+          {allTags.length > 0 ? (
+            <TagFilterRow tags={allTags} selectedTag={selectedTag} onSelect={setSelectedTag} />
+          ) : null}
+        </View>
+
+        <AppKeyboardAwareScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          {recipes.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Mes recettes</Text>
+              <Text style={styles.emptyBody}>
+                Aucune recette pour le moment. Appuyez sur + pour créer une nouvelle recette.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {pinned.length > 0 ? (
+                <View style={styles.pinnedSection}>
+                  <View style={styles.sectionHeader}>
+                    <PinIcon active size={16} />
+                    <Text style={styles.sectionTitle}>Au menu</Text>
+                  </View>
+                  <View style={styles.pinnedTrack}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.pinnedScroll}
+                      contentContainerStyle={styles.pinnedRow}
+                      keyboardShouldPersistTaps="handled">
+                      {pinned.map((recipe) => (
+                        <PinnedRecipeCard
+                          key={recipe.id}
+                          recipe={recipe}
+                          onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
+                          onPressPin={() => togglePin(recipe.id)}
+                        />
+                      ))}
+                    </ScrollView>
+                  </View>
                 </View>
-                <View style={styles.pinnedTrack}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.pinnedScroll}
-                    contentContainerStyle={styles.pinnedRow}>
-                    {pinned.map((recipe) => (
-                      <PinnedRecipeCard
+              ) : null}
+
+              <View style={styles.listSection}>
+                <Text style={styles.sectionTitle}>Mes recettes</Text>
+                {list.length === 0 ? (
+                  <Text style={styles.emptyBody}>Aucune recette ne correspond à votre recherche.</Text>
+                ) : (
+                  <View style={styles.list}>
+                    {list.map((recipe) => (
+                      <RecipeListCard
                         key={recipe.id}
                         recipe={recipe}
                         onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
                         onPressPin={() => togglePin(recipe.id)}
                       />
                     ))}
-                  </ScrollView>
-                </View>
+                  </View>
+                )}
               </View>
-            ) : null}
-
-            <View style={styles.listSection}>
-              <Text style={styles.sectionTitle}>Mes recettes</Text>
-              {list.length === 0 ? (
-                <Text style={styles.emptyBody}>Aucune recette ne correspond à votre recherche.</Text>
-              ) : (
-                <View style={styles.list}>
-                  {list.map((recipe) => (
-                    <RecipeListCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      onPress={() => router.push(`/recipe/${recipe.id}` as Href)}
-                      onPressPin={() => togglePin(recipe.id)}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          </>
-        )}
-      </ScrollView>
+            </>
+          )}
+        </AppKeyboardAwareScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -135,6 +140,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Colors.white,
+  },
+  flex: {
+    flex: 1,
   },
   headerBlock: {
     backgroundColor: Colors.white,

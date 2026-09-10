@@ -1,18 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShoppingGroup } from '@/components/shopping/ShoppingGroup';
+import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { CartIcon } from '@/components/ui/icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -73,9 +72,7 @@ export default function ShoppingScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={styles.header}>
           <Text style={styles.title}>Liste de courses</Text>
           {checkedCount > 0 ? (
@@ -117,10 +114,10 @@ export default function ShoppingScreen() {
             </Text>
           </View>
         ) : (
-          <ScrollView
+          <AppKeyboardAwareScrollView
             style={styles.flex}
             contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
+            bottomOffset={24}
             showsVerticalScrollIndicator={false}>
             {sections.map((section) => (
               <ShoppingGroup
@@ -131,7 +128,7 @@ export default function ShoppingScreen() {
                 onRemove={handleRemove}
               />
             ))}
-          </ScrollView>
+          </AppKeyboardAwareScrollView>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>

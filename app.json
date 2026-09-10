@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/images/Komi-app-icon.png",
         "backgroundColor": "#FAF9F7"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",
@@ -34,7 +35,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Komi a besoin d’accéder à vos photos pour illustrer vos recettes."
+          "photosPermission": "Komi a besoin d’accéder à vos photos pour illustrer vos recettes.",
+          "cameraPermission": "Komi a besoin de la caméra pour photographier vos recettes."
         }
       ]
     ],

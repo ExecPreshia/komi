@@ -1,4 +1,4 @@
-import { type Href, Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -56,7 +56,7 @@ export default function EditRecipeScreen() {
             ingredients: values.ingredients,
             steps: values.steps,
           });
-          router.replace(`/recipe/${recipe.id}` as Href);
+          router.back();
         }}
       />
     </View>

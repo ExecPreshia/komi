@@ -175,14 +175,16 @@ export default function CookingModeScreen() {
   }
 
   function resetTimer(step: Step) {
-    if (!step.timerSeconds || step.timerSeconds <= 0) return;
-    setRemaining((current) => ({
-      ...current,
-      [step.id]: step.timerSeconds!,
-    }));
+    setRemaining((current) => {
+      if (!Object.prototype.hasOwnProperty.call(current, step.id)) return current;
+      const next = { ...current };
+      delete next[step.id];
+      return next;
+    });
     setPausedIds((current) => {
+      if (!current.has(step.id)) return current;
       const next = new Set(current);
-      next.add(step.id);
+      next.delete(step.id);
       return next;
     });
   }

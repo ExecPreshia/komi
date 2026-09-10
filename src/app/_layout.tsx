@@ -1,3 +1,5 @@
+import '@/polyfills/interaction-manager';
+
 import {
   AlanSans_400Regular,
   AlanSans_500Medium,
@@ -15,6 +17,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { Colors } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -61,16 +64,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.primary } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="recipe/new" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="recipe/[id]/index" options={{ headerShown: false }} />
-        <Stack.Screen name="recipe/[id]/edit" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="recipe/[id]/cook" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="recipe/[id]/complete" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="recipe/[id]/notes" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: true, title: 'Paramètres' }} />
-      </Stack>
+      <KeyboardProvider>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.primary } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="recipe/new" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="recipe/[id]/index" options={{ headerShown: false }} />
+          <Stack.Screen name="recipe/[id]/edit" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="recipe/[id]/cook" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="recipe/[id]/complete" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="recipe/[id]/notes" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: true, title: 'Paramètres' }} />
+        </Stack>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

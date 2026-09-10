@@ -8,8 +8,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -46,7 +48,7 @@ export default function RecipeNotesScreen() {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView style={[styles.root, { paddingTop: insets.top }]} behavior="padding">
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
@@ -60,26 +62,35 @@ export default function RecipeNotesScreen() {
         </Pressable>
       </View>
 
-      <Text style={styles.prompt}>
-        Pour la prochaine fois : ce que je changerai dans {activeRecipe.title} ou toute autre observation.
-      </Text>
+      <AppKeyboardAwareScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        bottomOffset={100}
+        showsVerticalScrollIndicator={false}>
+        <Text style={styles.prompt}>
+          Pour la prochaine fois : ce que je changerai dans {activeRecipe.title} ou toute autre
+          observation.
+        </Text>
 
-      <TextInput
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="Ex : mettre moins de sel, très bon avec une salade en accompagnement..."
-        placeholderTextColor={Colors.textMuted}
-        multiline
-        textAlignVertical="top"
-        style={styles.input}
-      />
+        <TextInput
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Ex : mettre moins de sel, très bon avec une salade en accompagnement..."
+          placeholderTextColor={Colors.textMuted}
+          multiline
+          textAlignVertical="top"
+          style={styles.input}
+        />
+      </AppKeyboardAwareScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
-        <Pressable style={styles.saveButton} onPress={saveNotes}>
-          <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
-        </Pressable>
-      </View>
-    </View>
+      <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
+          <Pressable style={styles.saveButton} onPress={saveNotes}>
+            <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
+          </Pressable>
+        </View>
+      </KeyboardStickyView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -88,6 +99,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.four,
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: Spacing.four,
   },
   missing: {
     flex: 1,
@@ -135,7 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.four,
   },
   input: {
-    flex: 1,
+    minHeight: 220,
     backgroundColor: Colors.white,
     borderRadius: Radii.lg,
     borderWidth: 1,
@@ -148,6 +166,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: Spacing.four,
+    backgroundColor: Colors.primary,
   },
   saveButton: {
     minHeight: 54,
