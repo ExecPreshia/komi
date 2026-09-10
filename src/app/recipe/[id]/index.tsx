@@ -54,6 +54,7 @@ export default function RecipeDetailScreen() {
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
   const togglePin = useKomiStore((state) => state.togglePin);
   const deleteRecipe = useKomiStore((state) => state.deleteRecipe);
+  const duplicateRecipe = useKomiStore((state) => state.duplicateRecipe);
   const addIngredientsToShoppingList = useKomiStore((state) => state.addIngredientsToShoppingList);
 
   const [tab, setTab] = useState<DetailTab>('ingredients');
@@ -71,6 +72,7 @@ export default function RecipeDetailScreen() {
     title: string;
     message?: string;
   } | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const updateRecipe = useKomiStore((state) => state.updateRecipe);
 
   useEffect(() => {
@@ -132,21 +134,21 @@ export default function RecipeDetailScreen() {
 
   function handleDelete() {
     setMenuOpen(false);
-    Alert.alert(
-      'Supprimer la recette',
-      `Voulez-vous vraiment supprimer « ${currentRecipe.title} » ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            deleteRecipe(currentRecipe.id);
-            router.replace('/' as Href);
-          },
-        },
-      ],
-    );
+    setDeleteConfirmOpen(true);
+  }
+
+  function confirmDelete() {
+    deleteRecipe(currentRecipe.id);
+    router.replace('/' as Href);
+  }
+
+  function handleDuplicate() {
+    setMenuOpen(false);
+    const copy = duplicateRecipe(currentRecipe.id);
+    if (!copy) return;
+    setShoppingFeedback({
+      title: `La recette "${copy.title}" a bien été dupliquée`,
+    });
   }
 
   function handleAddToShopping() {
@@ -321,6 +323,9 @@ export default function RecipeDetailScreen() {
             <Pressable style={styles.menuItem} onPress={openNotesEditor}>
               <Text style={styles.menuItemLabel}>Ajouter une remarque</Text>
             </Pressable>
+            <Pressable style={styles.menuItem} onPress={handleDuplicate}>
+              <Text style={styles.menuItemLabel}>Dupliquer</Text>
+            </Pressable>
             <Pressable style={styles.menuItem} onPress={handleDelete}>
               <Text style={[styles.menuItemLabel, styles.menuItemDanger]}>Supprimer</Text>
             </Pressable>
@@ -339,6 +344,17 @@ export default function RecipeDetailScreen() {
         hideCancel
         onClose={() => setShoppingFeedback(null)}
         onConfirm={() => setShoppingFeedback(null)}
+      />
+
+      <KomiConfirmSheet
+        visible={deleteConfirmOpen}
+        title="Supprimer la recette"
+        message={`Voulez-vous vraiment supprimer « ${currentRecipe.title} » ?`}
+        cancelLabel="Annuler"
+        confirmLabel="Supprimer"
+        destructive
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
       />
     </View>
   );

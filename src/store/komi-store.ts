@@ -16,6 +16,7 @@ type KomiState = {
   updateRecipe: (id: string, patch: Partial<Recipe>) => void;
   togglePin: (id: string) => void;
   deleteRecipe: (id: string) => void;
+  duplicateRecipe: (id: string) => Recipe | null;
   setShoppingList: (items: ShoppingListItem[]) => void;
   addIngredientsToShoppingList: (
     recipe: Recipe,
@@ -73,6 +74,56 @@ export const useKomiStore = create<KomiState>()(
             item.recipeId === id ? { ...item, recipeId: null } : item,
           ),
         });
+      },
+      duplicateRecipe: (id) => {
+        const source = get().recipes.find((recipe) => recipe.id === id);
+        if (!source) return null;
+
+        const ingredientIdMap = new Map<string, string>();
+        const ingredients = [...source.ingredients]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((ingredient, index) => {
+            const nextId = createId('ing');
+            ingredientIdMap.set(ingredient.id, nextId);
+            return {
+              ...ingredient,
+              id: nextId,
+              sortOrder: index,
+            };
+          });
+
+        const steps = [...source.steps]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((step, index) => ({
+            ...step,
+            id: createId('step'),
+            sortOrder: index,
+            ingredientIds: step.ingredientIds
+              .map((ingredientId) => ingredientIdMap.get(ingredientId))
+              .filter((ingredientId): ingredientId is string => Boolean(ingredientId)),
+            subSteps: [...step.subSteps]
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((subStep, subIndex) => ({
+                ...subStep,
+                id: createId('sub'),
+                sortOrder: subIndex,
+              })),
+          }));
+
+        const now = new Date().toISOString();
+        const copy: Recipe = {
+          ...source,
+          id: createId('recipe'),
+          isPinned: false,
+          ingredients,
+          steps,
+          tags: [...source.tags],
+          notes: source.notes,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set({ recipes: [copy, ...get().recipes] });
+        return copy;
       },
       setShoppingList: (shoppingList) => set({ shoppingList }),
       addIngredientsToShoppingList: (recipe, ingredients, servings) => {
