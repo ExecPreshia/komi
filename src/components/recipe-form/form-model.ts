@@ -118,7 +118,6 @@ export function parseOptionalNumber(value: string): number | null {
 export function validateRecipeForm(values: RecipeFormValues): string | null {
   if (!values.title.trim()) return 'Ajoutez un titre à la recette.';
   if (values.baseServings < 1) return 'Le nombre de portions doit être au moins 1.';
-  if (values.cookingTimeMinutes < 1) return 'Indiquez un temps de préparation.';
   const namedIngredients = values.ingredients.filter((item) => item.name.trim());
   if (namedIngredients.length === 0) return 'Ajoutez au moins un ingrédient.';
   const titledSteps = values.steps.filter((step) => step.title.trim());

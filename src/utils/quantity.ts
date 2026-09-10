@@ -71,7 +71,7 @@ export function groupIngredients(ingredients: Ingredient[]): IngredientGroup[] {
 }
 
 export function formatCookingTimeLong(minutes: number): string {
-  if (!Number.isFinite(minutes) || minutes <= 0) return '—';
+  if (!Number.isFinite(minutes) || minutes <= 0) return '-';
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;

@@ -190,7 +190,7 @@ export function RecipeForm({
   function handleSubmit() {
     const nextValues: RecipeFormValues = {
       ...values,
-      cookingTimeMinutes: Math.max(1, Number(timeDraft.replace(/[^0-9]/g, '')) || 0),
+      cookingTimeMinutes: Number(timeDraft.replace(/[^0-9]/g, '')) || 0,
       baseServings: Math.max(1, Number(servingsDraft.replace(/[^0-9]/g, '')) || 0),
     };
     const error = validateRecipeForm(nextValues);

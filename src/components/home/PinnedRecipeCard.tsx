@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { TagChip } from '@/components/ui/TagChip';
+import { TagOverflowRow } from '@/components/home/TagOverflowRow';
 import { PinIcon } from '@/components/ui/PinIcon';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import type { Recipe } from '@/types/recipe';
@@ -27,7 +27,7 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
       </View>
       <View style={styles.body}>
         <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
             {recipe.title}
           </Text>
           <Pressable
@@ -38,11 +38,7 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
             <PinIcon active />
           </Pressable>
         </View>
-        <View style={styles.tags}>
-          {recipe.tags.slice(0, 3).map((tag) => (
-            <TagChip key={tag} label={tag} />
-          ))}
-        </View>
+        <TagOverflowRow tags={recipe.tags} />
         <Text style={styles.meta}>
           {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
           {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
@@ -96,11 +92,6 @@ const styles = StyleSheet.create({
     ...Typography.section,
     fontSize: 17,
     flex: 1,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
   },
   meta: {
     ...Typography.caption,

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -72,7 +73,7 @@ export default function CookingModeScreen() {
   const goNext = useCallback(() => {
     if (!recipe) return;
     if (indexRef.current >= steps.length - 1) {
-      router.replace(`/recipe/${recipe.id}/complete` as Href);
+      router.push(`/recipe/${recipe.id}/complete` as Href);
       return;
     }
     setIndex((value) => Math.min(steps.length - 1, value + 1));
@@ -297,7 +298,12 @@ export default function CookingModeScreen() {
               </View>
             ) : null}
 
-            <View style={styles.instructions}>
+            <ScrollView
+              style={styles.instructions}
+              contentContainerStyle={styles.instructionsContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              bounces>
               {[...current.subSteps]
                 .sort((a, b) => a.sortOrder - b.sortOrder)
                 .map((sub, subIndex, list) => (
@@ -309,7 +315,7 @@ export default function CookingModeScreen() {
               {current.subSteps.length === 0 ? (
                 <Text style={styles.instruction}>Suivez cette étape, puis continuez.</Text>
               ) : null}
-            </View>
+            </ScrollView>
 
             {current.timerSeconds && current.timerSeconds > 0 ? (
               <View style={styles.timerBlock}>
@@ -574,6 +580,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
     padding: Spacing.four,
     gap: Spacing.three,
+    overflow: 'hidden',
   },
   peekTitle: {
     flex: 1,
@@ -598,11 +605,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 0.8,
     color: Colors.textMuted,
+    flexShrink: 0,
   },
   pills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+    flexShrink: 0,
   },
   pill: {
     backgroundColor: Colors.inputFill,
@@ -620,8 +629,13 @@ const styles = StyleSheet.create({
   },
   instructions: {
     flex: 1,
+    minHeight: 0,
+  },
+  instructionsContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     gap: Spacing.three,
+    paddingVertical: Spacing.one,
   },
   instruction: {
     fontFamily: Fonts.body,
@@ -639,6 +653,7 @@ const styles = StyleSheet.create({
   },
   timerBlock: {
     alignItems: 'center',
+    flexShrink: 0,
   },
   activeTimer: {
     flexDirection: 'row',

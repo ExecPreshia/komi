@@ -2,6 +2,7 @@ import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BackArrowIcon } from '@/components/recipe/detail-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 
@@ -23,6 +24,16 @@ export default function RecipeCompleteScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + Spacing.six }]}>
+      <View style={[styles.backRow, { top: insets.top + Spacing.two }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+          onPress={() => router.back()}
+          style={styles.roundButton}>
+          <BackArrowIcon />
+        </Pressable>
+      </View>
+
       <View style={styles.content}>
         <Text style={styles.emoji}>✦</Text>
         <Text style={styles.title}>Félicitations ! Bonne dégustation.</Text>
@@ -50,6 +61,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.four,
+  },
+  backRow: {
+    position: 'absolute',
+    left: Spacing.four,
+    zIndex: 20,
+  },
+  roundButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(44, 39, 35, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

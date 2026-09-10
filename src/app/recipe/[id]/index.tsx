@@ -343,7 +343,7 @@ function RoundButton({
 function MetaItem({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <View style={styles.metaItem}>
-      {icon}
+      <View style={styles.metaIcon}>{icon}</View>
       <Text style={styles.metaLabel}>{label}</Text>
     </View>
   );
@@ -617,6 +617,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
     flex: 1,
+  },
+  metaIcon: {
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   metaLabel: {
     fontFamily: Fonts.body,
