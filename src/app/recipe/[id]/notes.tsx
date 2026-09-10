@@ -8,7 +8,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
@@ -48,7 +47,7 @@ export default function RecipeNotesScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={[styles.root, { paddingTop: insets.top }]} behavior="padding">
+    <View style={[styles.root, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
@@ -65,7 +64,9 @@ export default function RecipeNotesScreen() {
       <AppKeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
-        bottomOffset={100}
+        bottomOffset={24}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}>
         <Text style={styles.prompt}>
           Pour la prochaine fois : ce que je changerai dans {activeRecipe.title} ou toute autre
@@ -83,14 +84,12 @@ export default function RecipeNotesScreen() {
         />
       </AppKeyboardAwareScrollView>
 
-      <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
-          <Pressable style={styles.saveButton} onPress={saveNotes}>
-            <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
-          </Pressable>
-        </View>
-      </KeyboardStickyView>
-    </KeyboardAvoidingView>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
+        <Pressable style={styles.saveButton} onPress={saveNotes}>
+          <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 

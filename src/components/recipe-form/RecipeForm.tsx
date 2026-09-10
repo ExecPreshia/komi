@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryField } from '@/components/recipe-form/CategoryField';
@@ -23,7 +24,11 @@ import {
   sanitizeFormValues,
   validateRecipeForm,
 } from '@/components/recipe-form/form-model';
-import { ReorderDragHandle, ReorderableList } from '@/components/recipe-form/ReorderableList';
+import {
+  ReorderDragHandle,
+  ReorderableList,
+  useDragScrollMetrics,
+} from '@/components/recipe-form/ReorderableList';
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { TagChip } from '@/components/ui/TagChip';
 import {
@@ -68,6 +73,9 @@ export function RecipeForm({
     initialValues.baseServings > 0 ? String(initialValues.baseServings) : '',
   );
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
+  const { scrollController, onScroll, onLayout, onContentSizeChange } =
+    useDragScrollMetrics(scrollRef);
 
   const namedIngredients = useMemo(
     () => values.ingredients.filter((item) => item.name.trim()),
@@ -390,12 +398,17 @@ export function RecipeForm({
   return (
     <View style={styles.root}>
       <AppKeyboardAwareScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.content}
         bottomOffset={24}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         scrollEnabled={scrollEnabled}
+        scrollEventThrottle={16}
+        onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+        onLayout={(event) => onLayout(event.nativeEvent.layout.height)}
+        onContentSizeChange={onContentSizeChange}
         showsVerticalScrollIndicator={false}>
         <FieldLabel text="Titre *" />
         <TextInput
@@ -525,6 +538,7 @@ export function RecipeForm({
           data={values.ingredients}
           onReorder={(data) => update('ingredients', reindexItems(data))}
           onDragStateChange={(dragging) => setScrollEnabled(!dragging)}
+          scrollController={scrollController}
           renderItem={renderIngredient}
         />
         <Pressable
@@ -543,6 +557,7 @@ export function RecipeForm({
           data={values.steps}
           onReorder={(data) => update('steps', renumberStepTitles(data))}
           onDragStateChange={(dragging) => setScrollEnabled(!dragging)}
+          scrollController={scrollController}
           renderItem={renderStep}
         />
         <Pressable
