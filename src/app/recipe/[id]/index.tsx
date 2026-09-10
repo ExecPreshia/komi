@@ -16,6 +16,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
+import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { TagChip } from '@/components/ui/TagChip';
 import { PinIcon } from '@/components/ui/PinIcon';
 import {
@@ -66,6 +67,10 @@ export default function RecipeDetailScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
+  const [shoppingFeedback, setShoppingFeedback] = useState<{
+    title: string;
+    message?: string;
+  } | null>(null);
   const updateRecipe = useKomiStore((state) => state.updateRecipe);
 
   useEffect(() => {
@@ -147,8 +152,14 @@ export default function RecipeDetailScreen() {
   function handleAddToShopping() {
     if (uncheckedIngredients.length === 0) return;
     const count = addIngredientsToShoppingList(currentRecipe, uncheckedIngredients, servings);
-    if (count === 0) return;
-    Alert.alert('Liste de courses', `${count} ingrédient${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}.`);
+    if (count === 0) {
+      setShoppingFeedback({ title: 'Ingrédients déjà ajoutés' });
+      return;
+    }
+    setShoppingFeedback({
+      title: 'Liste de courses',
+      message: `${count} ingrédient${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}.`,
+    });
   }
 
   function openNotesEditor() {
@@ -319,6 +330,16 @@ export default function RecipeDetailScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      <KomiConfirmSheet
+        visible={shoppingFeedback != null}
+        title={shoppingFeedback?.title ?? ''}
+        message={shoppingFeedback?.message}
+        confirmLabel="OK"
+        hideCancel
+        onClose={() => setShoppingFeedback(null)}
+        onConfirm={() => setShoppingFeedback(null)}
+      />
     </View>
   );
 }
