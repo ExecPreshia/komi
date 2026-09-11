@@ -86,14 +86,11 @@ export default function SettingsScreen() {
             <Text style={styles.chevron}>›</Text>
           </Pressable>
         </View>
-
-        <Text style={styles.sectionLabel}>{t('settings.version')}</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <Text style={[styles.rowTitle, styles.rowText]}>{version}</Text>
-          </View>
-        </View>
       </View>
+
+      <Text style={[styles.versionFooter, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
+        {version}
+      </Text>
 
       <KomiActionSheet
         visible={languageSheetOpen}
@@ -143,9 +140,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   content: {
+    flex: 1,
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.six,
     gap: Spacing.two,
+  },
+  versionFooter: {
+    textAlign: 'center',
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    color: Colors.text,
+    opacity: 0.5,
   },
   sectionLabel: {
     marginTop: Spacing.three,
