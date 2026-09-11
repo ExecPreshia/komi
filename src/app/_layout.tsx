@@ -1,5 +1,3 @@
-import '@/polyfills/interaction-manager';
-
 import {
   AlanSans_400Regular,
   AlanSans_500Medium,
