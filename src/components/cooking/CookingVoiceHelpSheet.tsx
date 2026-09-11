@@ -1,5 +1,6 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 
 const HELP_LINES = [
@@ -20,7 +21,16 @@ export function CookingVoiceHelpSheet({ visible, onClose }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={styles.card} onStartShouldSetResponder={() => true}>
-          <Text style={styles.title}>Commandes vocales</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>Commandes vocales</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fermer"
+              onPress={onClose}
+              style={styles.closeButton}>
+              <CloseIcon />
+            </Pressable>
+          </View>
           <View style={styles.list}>
             {HELP_LINES.map((line) => (
               <View key={line.command} style={styles.row}>
@@ -29,9 +39,6 @@ export function CookingVoiceHelpSheet({ visible, onClose }: Props) {
               </View>
             ))}
           </View>
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeLabel}>Fermer</Text>
-          </Pressable>
         </View>
       </Pressable>
     </Modal>
@@ -54,7 +61,14 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     ...Shadows.card,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+  },
   title: {
+    flex: 1,
     fontFamily: Fonts.sansSemiBold,
     fontSize: 18,
     color: Colors.text,
@@ -77,13 +91,13 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   closeButton: {
-    alignSelf: 'flex-end',
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-  },
-  closeLabel: {
-    fontFamily: Fonts.bodyMedium,
-    fontSize: 15,
-    color: Colors.text,
+    width: 40,
+    height: 40,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
