@@ -40,8 +40,33 @@ export const en: { [K in keyof FrTranslations]: string } = {
   'settings.aboutKomi': 'About Komi',
   'settings.version': 'Version',
   'settings.aboutTitle': 'About Komi',
-  'settings.aboutBody':
-    'Komi is your personal cooking companion. Save your recipes, organize them, cook step by step, and keep your shopping list in one place — all on your phone, with no account and no cloud.',
+  'settings.aboutTagline': 'Your personal kitchen assistant 🍳',
+  'settings.aboutIntro1':
+    'Komi is a cooking companion built to support you at every step, from the shopping list through to preparation.',
+  'settings.aboutIntro2':
+    'The app focuses on three things: efficiency in the kitchen, clarity, and personalization.',
+  'settings.aboutFeaturesTitle': '🌟 Key features',
+  'settings.aboutFeatureCarnetLabel': 'Custom cookbook',
+  'settings.aboutFeatureCarnetBody':
+    'Save, organize, and find your recipes with your own tags.',
+  'settings.aboutFeatureMenuLabel': 'On the menu',
+  'settings.aboutFeatureMenuBody': 'Pin recipes so you can find them quickly.',
+  'settings.aboutFeatureCookLabel': 'Cooking Mode',
+  'settings.aboutFeatureCookBody':
+    'Follow your steps with keep-awake, built-in timers, and voice commands.',
+  'settings.aboutFeatureNotesLabel': 'Post-cooking notes',
+  'settings.aboutFeatureNotesBody':
+    'Keep your tweaks and ideas for next time.',
+  'settings.aboutFeatureShoppingLabel': 'Centralized shopping',
+  'settings.aboutFeatureShoppingBody':
+    'Adjust portions and add missing ingredients to your list.',
+  'settings.aboutTechTitle': '💻 Technical details',
+  'settings.aboutTechStack': 'React Native & Expo',
+  'settings.aboutTechLocal':
+    'Local-first: your recipes and data stay on your phone. Nothing is sent to an external server.',
+  'settings.aboutDesignerTitle': '👋 A note from the designer',
+  'settings.aboutDesignerBody':
+    'Komi started from a simple need: a practical, clear cooking tool that fits the real pace of preparing a meal. Built first for personal use, it keeps evolving with my own time in the kitchen.',
 
   'difficulty.facile': 'Easy',
   'difficulty.moyen': 'Medium',

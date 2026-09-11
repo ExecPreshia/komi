@@ -39,8 +39,34 @@ export const fr = {
   'settings.aboutKomi': 'À propos de Komi',
   'settings.version': 'Version',
   'settings.aboutTitle': 'À propos de Komi',
-  'settings.aboutBody':
-    'Komi est votre compagnon de cuisine personnel. Enregistrez vos recettes, organisez-les, suivez-les pas à pas en cuisine et centralisez votre liste de courses — le tout sur votre téléphone, sans compte ni cloud.',
+  'settings.aboutTagline': 'Votre commis de cuisine personnel 🍳',
+  'settings.aboutIntro1':
+    'Komi est un compagnon de cuisine pensé pour vous accompagner à chaque étape, de la liste de courses jusqu’à la préparation.',
+  'settings.aboutIntro2':
+    'L’application privilégie trois choses : l’efficacité en cuisine, la clarté et la personnalisation.',
+  'settings.aboutFeaturesTitle': '🌟 Fonctionnalités clés',
+  'settings.aboutFeatureCarnetLabel': 'Carnet sur-mesure',
+  'settings.aboutFeatureCarnetBody':
+    'Enregistrez, organisez et retrouvez vos recettes grâce à vos tags.',
+  'settings.aboutFeatureMenuLabel': 'Au menu',
+  'settings.aboutFeatureMenuBody':
+    'Épinglez vos recettes pour les retrouver rapidement.',
+  'settings.aboutFeatureCookLabel': 'Mode Cuisine',
+  'settings.aboutFeatureCookBody':
+    'Suivez vos étapes avec l’écran éveillé, des minuteurs intégrés et des commandes vocales.',
+  'settings.aboutFeatureNotesLabel': 'Notes post-cuisson',
+  'settings.aboutFeatureNotesBody':
+    'Gardez vos ajustements et idées pour la prochaine fois.',
+  'settings.aboutFeatureShoppingLabel': 'Courses centralisées',
+  'settings.aboutFeatureShoppingBody':
+    'Ajustez les portions et ajoutez les ingrédients manquants à votre liste.',
+  'settings.aboutTechTitle': '💻 Informations techniques',
+  'settings.aboutTechStack': 'React Native & Expo',
+  'settings.aboutTechLocal':
+    'Local-first : vos recettes et données sont stockées directement sur votre téléphone. Aucune donnée n’est envoyée vers un serveur externe.',
+  'settings.aboutDesignerTitle': '👋 Le mot du designer',
+  'settings.aboutDesignerBody':
+    'Komi est né d’un besoin simple : créer un outil de cuisine pratique, clair et adapté au rythme réel d’une préparation. Conçu d’abord pour un usage personnel, il évolue au fil de mes propres besoins en cuisine.',
 
   'difficulty.facile': 'Facile',
   'difficulty.moyen': 'Moyen',

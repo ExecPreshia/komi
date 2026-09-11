@@ -4,8 +4,32 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CloseIcon } from '@/components/ui/form-icons';
 import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n';
 import { getAppVersion } from '@/utils/app-version';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+
+const FEATURES: { label: TranslationKey; body: TranslationKey }[] = [
+  {
+    label: 'settings.aboutFeatureCarnetLabel',
+    body: 'settings.aboutFeatureCarnetBody',
+  },
+  {
+    label: 'settings.aboutFeatureMenuLabel',
+    body: 'settings.aboutFeatureMenuBody',
+  },
+  {
+    label: 'settings.aboutFeatureCookLabel',
+    body: 'settings.aboutFeatureCookBody',
+  },
+  {
+    label: 'settings.aboutFeatureNotesLabel',
+    body: 'settings.aboutFeatureNotesBody',
+  },
+  {
+    label: 'settings.aboutFeatureShoppingLabel',
+    body: 'settings.aboutFeatureShoppingBody',
+  },
+];
 
 export default function AboutScreen() {
   const insets = useSafeAreaInsets();
@@ -30,7 +54,34 @@ export default function AboutScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.body}>{t('settings.aboutBody')}</Text>
+        <Text style={styles.tagline}>{t('settings.aboutTagline')}</Text>
+
+        <View style={styles.block}>
+          <Text style={styles.body}>{t('settings.aboutIntro1')}</Text>
+          <Text style={styles.body}>{t('settings.aboutIntro2')}</Text>
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.sectionTitle}>{t('settings.aboutFeaturesTitle')}</Text>
+          {FEATURES.map((feature) => (
+            <Text key={feature.label} style={styles.body}>
+              <Text style={styles.featureLabel}>{t(feature.label)} : </Text>
+              {t(feature.body)}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.sectionTitle}>{t('settings.aboutTechTitle')}</Text>
+          <Text style={styles.body}>{t('settings.aboutTechStack')}</Text>
+          <Text style={styles.body}>{t('settings.aboutTechLocal')}</Text>
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.sectionTitle}>{t('settings.aboutDesignerTitle')}</Text>
+          <Text style={styles.body}>{t('settings.aboutDesignerBody')}</Text>
+        </View>
+
         <Text style={styles.version}>
           {t('settings.version')} {version}
         </Text>
@@ -74,11 +125,29 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.seven,
     gap: Spacing.five,
   },
+  block: {
+    gap: Spacing.three,
+  },
+  tagline: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 18,
+    lineHeight: 26,
+    color: Colors.text,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 17,
+    lineHeight: 24,
+    color: Colors.text,
+  },
   body: {
     fontFamily: Fonts.body,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.text,
+  },
+  featureLabel: {
+    fontFamily: Fonts.bodyMedium,
   },
   version: {
     fontFamily: Fonts.bodyMedium,
