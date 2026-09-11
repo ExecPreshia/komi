@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
+import { showKomiToast, ToastBottomAnchor } from '@/components/ui/KomiToast';
 import { TagChip } from '@/components/ui/TagChip';
 import { PinIcon } from '@/components/ui/PinIcon';
 import {
@@ -139,6 +140,7 @@ export default function RecipeDetailScreen() {
 
   function confirmDelete() {
     deleteRecipe(currentRecipe.id);
+    showKomiToast('Recette supprimée');
     router.replace('/' as Href);
   }
 
@@ -146,9 +148,7 @@ export default function RecipeDetailScreen() {
     setMenuOpen(false);
     const copy = duplicateRecipe(currentRecipe.id);
     if (!copy) return;
-    setShoppingFeedback({
-      title: `La recette "${copy.title}" a bien été dupliquée`,
-    });
+    showKomiToast('Recette dupliquée');
   }
 
   function handleAddToShopping() {
@@ -283,7 +283,7 @@ export default function RecipeDetailScreen() {
         </View>
       </View>
 
-      <View style={[styles.footer, { paddingBottom: footerPadding }]}>
+      <ToastBottomAnchor id="recipe-detail-footer" style={[styles.footer, { paddingBottom: footerPadding }]}>
         {tab === 'ingredients' ? (
           <Pressable
             style={[styles.shoppingButton, shoppingDisabled && styles.shoppingButtonDisabled]}
@@ -307,7 +307,7 @@ export default function RecipeDetailScreen() {
           <ChefHatIcon />
           <Text style={styles.cookLabel}>Cuisiner</Text>
         </Pressable>
-      </View>
+      </ToastBottomAnchor>
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuOpen(false)}>

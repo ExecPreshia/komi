@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RecipeForm } from '@/components/recipe-form/RecipeForm';
 import { recipeToFormValues } from '@/components/recipe-form/form-model';
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
+import { showKomiToast } from '@/components/ui/KomiToast';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -59,6 +60,7 @@ export default function EditRecipeScreen() {
             ingredients: values.ingredients,
             steps: values.steps,
           });
+          showKomiToast('Modifications enregistrées');
           router.back();
         }}
       />

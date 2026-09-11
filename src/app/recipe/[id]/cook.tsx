@@ -149,13 +149,17 @@ export default function CookingModeScreen() {
     return pausedIds.has(stepId);
   }
 
-  /** Previous peek expands while a timer is in progress (running or paused). */
-  function isTimerActive(stepId: string) {
-    return hasTimerStarted(stepId) && (remaining[stepId] ?? 0) > 0;
+  /** Previous peek expands while a timer is running, paused, or waiting to be dismissed. */
+  function isTimerVisible(stepId: string) {
+    return hasTimerStarted(stepId);
   }
 
-  /** All previous steps with an in-progress timer (oldest → newest for the stack). */
-  const timerPreviousSteps = steps.slice(0, index).filter((step) => isTimerActive(step.id));
+  function isTimerComplete(stepId: string) {
+    return hasTimerStarted(stepId) && (remaining[stepId] ?? 0) <= 0;
+  }
+
+  /** All previous steps with a visible timer (in progress or Terminé until dismissed). */
+  const timerPreviousSteps = steps.slice(0, index).filter((step) => isTimerVisible(step.id));
   const showBarePrevious = timerPreviousSteps.length === 0 && previous != null;
   const topInset =
     timerPreviousSteps.length > 0
@@ -263,27 +267,40 @@ export default function CookingModeScreen() {
             </View>
           ) : null}
 
-          {timerPreviousSteps.map((step, peekIndex) => (
-            <Pressable
-              key={step.id}
-              style={[
-                styles.stackCard,
-                styles.prevCard,
-                styles.prevCardExpanded,
-                { top: peekIndex * PREV_TIMER_PEEK, zIndex: 1 + peekIndex },
-              ]}
-              onPress={goPrev}>
-              <Text style={styles.peekTitle} numberOfLines={1}>
-                {stepHeading(step)}
-              </Text>
-              <View style={styles.peekTimer}>
-                <TimerGlyph />
-                <Text style={styles.peekTimerLabel}>
-                  {formatCountdown(remaining[step.id] ?? 0)}
+          {timerPreviousSteps.map((step, peekIndex) => {
+            const complete = isTimerComplete(step.id);
+            return (
+              <Pressable
+                key={step.id}
+                style={[
+                  styles.stackCard,
+                  styles.prevCard,
+                  styles.prevCardExpanded,
+                  { top: peekIndex * PREV_TIMER_PEEK, zIndex: 1 + peekIndex },
+                ]}
+                onPress={goPrev}>
+                <Text style={styles.peekTitle} numberOfLines={1}>
+                  {stepHeading(step)}
                 </Text>
-              </View>
-            </Pressable>
-          ))}
+                <View style={styles.peekTimer}>
+                  <TimerGlyph />
+                  <Text style={styles.peekTimerLabel}>
+                    {complete ? 'Terminé' : formatCountdown(remaining[step.id] ?? 0)}
+                  </Text>
+                  {complete ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Fermer le minuteur"
+                      hitSlop={8}
+                      onPress={() => resetTimer(step)}
+                      style={styles.peekTimerClose}>
+                      <Text style={styles.peekTimerCloseLabel}>×</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
 
           {showBarePrevious ? (
             <Pressable
@@ -344,38 +361,47 @@ export default function CookingModeScreen() {
             {current.timerSeconds && current.timerSeconds > 0 ? (
               <View style={styles.timerBlock}>
                 {hasTimerStarted(current.id) ? (
-                  <View style={styles.activeTimer}>
-                    <TimerGlyph />
-                    <Text style={styles.activeTimerLabel}>
-                      {formatCountdown(remaining[current.id] ?? 0)}
-                    </Text>
-                    <View style={styles.timerControls}>
+                  isTimerComplete(current.id) ? (
+                    <View style={styles.activeTimer}>
+                      <TimerGlyph />
+                      <Text style={styles.activeTimerLabel}>Terminé</Text>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={
-                          isTimerPaused(current.id) || (remaining[current.id] ?? 0) <= 0
-                            ? 'Reprendre le minuteur'
-                            : 'Mettre en pause'
-                        }
-                        hitSlop={8}
-                        onPress={() => togglePauseTimer(current)}
-                        style={styles.timerControlButton}>
-                        {isTimerPaused(current.id) || (remaining[current.id] ?? 0) <= 0 ? (
-                          <PlayGlyph />
-                        ) : (
-                          <PauseGlyph />
-                        )}
-                      </Pressable>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Réinitialiser le minuteur"
+                        accessibilityLabel="Fermer le minuteur"
                         hitSlop={8}
                         onPress={() => resetTimer(current)}
                         style={styles.timerControlButton}>
-                        <ResetGlyph />
+                        <Text style={styles.timerCloseLabel}>×</Text>
                       </Pressable>
                     </View>
-                  </View>
+                  ) : (
+                    <View style={styles.activeTimer}>
+                      <TimerGlyph />
+                      <Text style={styles.activeTimerLabel}>
+                        {formatCountdown(remaining[current.id] ?? 0)}
+                      </Text>
+                      <View style={styles.timerControls}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            isTimerPaused(current.id) ? 'Reprendre le minuteur' : 'Mettre en pause'
+                          }
+                          hitSlop={8}
+                          onPress={() => togglePauseTimer(current)}
+                          style={styles.timerControlButton}>
+                          {isTimerPaused(current.id) ? <PlayGlyph /> : <PauseGlyph />}
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Réinitialiser le minuteur"
+                          hitSlop={8}
+                          onPress={() => resetTimer(current)}
+                          style={styles.timerControlButton}>
+                          <ResetGlyph />
+                        </Pressable>
+                      </View>
+                    </View>
+                  )
                 ) : (
                   <Pressable style={styles.startTimerButton} onPress={() => startTimer(current)}>
                     <TimerGlyph />
@@ -625,6 +651,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.accent,
   },
+  peekTimerClose: {
+    marginLeft: Spacing.one,
+    width: 22,
+    height: 22,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  peekTimerCloseLabel: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 16,
+    lineHeight: 18,
+    color: Colors.textMuted,
+  },
   currentTitle: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 15,
@@ -691,6 +731,7 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     minWidth: 78,
     textAlign: 'center',
+    flexShrink: 0,
   },
   timerControls: {
     flexDirection: 'row',
@@ -705,6 +746,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.inputFill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  timerCloseLabel: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 22,
+    lineHeight: 24,
+    color: Colors.text,
   },
   startTimerButton: {
     flexDirection: 'row',

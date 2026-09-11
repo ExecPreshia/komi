@@ -3,8 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookIcon, CartIcon } from '@/components/ui/icons';
+import { ToastBottomAnchor } from '@/components/ui/KomiToast';
 import { Colors, Fonts, Radii, Shadows, Spacing, TabBarHeight, Typography } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
+
+/** Raised + FAB overhang above the tab bar layout box. */
+const TAB_FAB_RISE = 28;
 
 type TabRoute = {
   key: string;
@@ -40,7 +44,10 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
   const shoppingFocused = activeName === 'shopping';
 
   return (
-    <View style={[styles.wrapper, { paddingBottom: bottomPad }]}>
+    <ToastBottomAnchor
+      id="tab-bar"
+      extraTop={TAB_FAB_RISE}
+      style={[styles.wrapper, { paddingBottom: bottomPad }]}>
       <View style={styles.bar}>
         <Pressable
           accessibilityRole="button"
@@ -99,7 +106,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
           <Text style={[styles.label, shoppingFocused && styles.labelActive]}>Courses</Text>
         </Pressable>
       </View>
-    </View>
+    </ToastBottomAnchor>
   );
 }
 
