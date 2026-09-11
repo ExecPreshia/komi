@@ -2,12 +2,13 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 
-const HELP_LINES = [
-  { command: '« Suivant »', meaning: "passer à l'étape suivante" },
-  { command: '« Précédent »', meaning: "revenir à l'étape précédente" },
-  { command: '« Instruction »', meaning: "lire l'instruction à voix haute" },
-  { command: '« Minuteur »', meaning: 'lancer le minuteur' },
+const HELP_LINE_KEYS = [
+  { command: 'cook.voiceCmd.next', meaning: 'cook.voiceCmd.nextMeaning' },
+  { command: 'cook.voiceCmd.prev', meaning: 'cook.voiceCmd.prevMeaning' },
+  { command: 'cook.voiceCmd.instruction', meaning: 'cook.voiceCmd.instructionMeaning' },
+  { command: 'cook.voiceCmd.timer', meaning: 'cook.voiceCmd.timerMeaning' },
 ] as const;
 
 type Props = {
@@ -17,25 +18,27 @@ type Props = {
 
 /** Lightweight dismissible panel listing Cooking Mode voice commands. */
 export function CookingVoiceHelpSheet({ visible, onClose }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={styles.card} onStartShouldSetResponder={() => true}>
           <View style={styles.header}>
-            <Text style={styles.title}>Commandes vocales</Text>
+            <Text style={styles.title}>{t('cook.voiceHelpTitle')}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Fermer"
+              accessibilityLabel={t('common.close')}
               onPress={onClose}
               style={styles.closeButton}>
               <CloseIcon />
             </Pressable>
           </View>
           <View style={styles.list}>
-            {HELP_LINES.map((line) => (
+            {HELP_LINE_KEYS.map((line) => (
               <View key={line.command} style={styles.row}>
-                <Text style={styles.command}>{line.command}</Text>
-                <Text style={styles.meaning}>{line.meaning}</Text>
+                <Text style={styles.command}>{t(line.command)}</Text>
+                <Text style={styles.meaning}>{t(line.meaning)}</Text>
               </View>
             ))}
           </View>

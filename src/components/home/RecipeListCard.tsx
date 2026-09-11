@@ -5,8 +5,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TagOverflowRow } from '@/components/home/TagOverflowRow';
 import { PinIcon } from '@/components/ui/PinIcon';
 import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { Recipe } from '@/types/recipe';
-import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime, normalizeCostLevel } from '@/utils/format';
+import { formatCookingTime, formatCost, formatDifficulty, normalizeCostLevel } from '@/utils/format';
 
 type RecipeListCardProps = {
   recipe: Recipe;
@@ -15,6 +16,7 @@ type RecipeListCardProps = {
 };
 
 export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardProps) {
+  const { t, locale } = useTranslation();
   const [contentWidth, setContentWidth] = useState(0);
 
   return (
@@ -24,7 +26,7 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
           <Image source={{ uri: recipe.photoUri }} style={styles.image} contentFit="cover" />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Text style={styles.placeholderText}>Sans photo</Text>
+            <Text style={styles.placeholderText}>{t('common.noPhoto')}</Text>
           </View>
         )}
       </View>
@@ -42,7 +44,9 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}
+            accessibilityLabel={
+              recipe.isPinned ? t('home.pinRemoveA11y') : t('home.pinAddA11y')
+            }
             hitSlop={8}
             onPress={onPressPin}>
             <PinIcon active={recipe.isPinned} size={16} />
@@ -54,8 +58,9 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
           containerWidth={contentWidth}
         />
         <Text style={styles.meta}>
-          {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
-          {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
+          {formatCookingTime(recipe.cookingTimeMinutes)} ·{' '}
+          {formatDifficulty(recipe.difficulty, locale)} ·{' '}
+          {formatCost(normalizeCostLevel(recipe.costLevel), locale)}
         </Text>
       </View>
     </Pressable>

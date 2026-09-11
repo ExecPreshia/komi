@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookIcon, CartIcon } from '@/components/ui/icons';
 import { ToastBottomAnchor } from '@/components/ui/KomiToast';
 import { Colors, Fonts, Radii, Shadows, Spacing, TabBarHeight, Typography } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 /** Raised + FAB overhang above the tab bar layout box. */
@@ -31,6 +32,7 @@ export type KomiTabBarProps = {
 };
 
 export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Spacing.two);
   const uncheckedCount = useKomiStore(
@@ -52,7 +54,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ selected: recipesFocused }}
-          accessibilityLabel="Recettes"
+          accessibilityLabel={t('tabs.recipes')}
           style={styles.sideTab}
           onPress={() => {
             if (!recipesRoute) return;
@@ -66,13 +68,13 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
             }
           }}>
           <BookIcon filled={recipesFocused} />
-          <Text style={[styles.label, recipesFocused && styles.labelActive]}>Recettes</Text>
+          <Text style={[styles.label, recipesFocused && styles.labelActive]}>{t('tabs.recipes')}</Text>
         </Pressable>
 
         <View style={styles.fabSlot}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Nouvelle recette"
+            accessibilityLabel={t('tabs.newRecipeA11y')}
             style={styles.fab}
             onPress={() => router.push('/recipe/new' as Href)}>
             <Text style={styles.fabLabel}>+</Text>
@@ -82,7 +84,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ selected: shoppingFocused }}
-          accessibilityLabel="Courses"
+          accessibilityLabel={t('tabs.shopping')}
           style={styles.sideTab}
           onPress={() => {
             if (!shoppingRoute) return;
@@ -103,7 +105,7 @@ export function KomiTabBar({ state, navigation }: KomiTabBarProps) {
               </View>
             ) : null}
           </View>
-          <Text style={[styles.label, shoppingFocused && styles.labelActive]}>Courses</Text>
+          <Text style={[styles.label, shoppingFocused && styles.labelActive]}>{t('tabs.shopping')}</Text>
         </Pressable>
       </View>
     </ToastBottomAnchor>

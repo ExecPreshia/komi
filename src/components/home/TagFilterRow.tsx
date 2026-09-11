@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { TagChip } from '@/components/ui/TagChip';
 import { Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 
 type TagFilterRowProps = {
   tags: string[];
@@ -10,12 +11,18 @@ type TagFilterRowProps = {
 };
 
 export function TagFilterRow({ tags, selectedTag, onSelect }: TagFilterRowProps) {
+  const { t } = useTranslation();
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}>
-      <TagChip label="tous" selected={selectedTag == null} onPress={() => onSelect(null)} />
+      <TagChip
+        label={t('home.tagFilterAll')}
+        selected={selectedTag == null}
+        onPress={() => onSelect(null)}
+      />
       {tags.map((tag) => (
         <TagChip
           key={tag}

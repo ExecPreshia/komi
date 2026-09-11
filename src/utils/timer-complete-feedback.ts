@@ -1,6 +1,8 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Vibration } from 'react-native';
 
+import { useKomiStore } from '@/store/komi-store';
+
 const TIMER_COMPLETE_SOUND = require('../../assets/sounds/timer-complete.mp3');
 
 /** Short one-shot pulse — not a repeating pattern tied to SFX length. */
@@ -22,11 +24,13 @@ function ensureAudioMode(): Promise<void> {
 }
 
 /**
- * Plays the timer-complete SFX and a single short vibration pulse.
+ * Plays the timer-complete SFX (when enabled in Settings) and a short vibration pulse.
  * Safe to call once per completed timer (including concurrent completions).
  */
 export function playTimerCompleteFeedback(): void {
   Vibration.vibrate(VIBRATION_MS);
+
+  if (!useKomiStore.getState().timerSoundEnabled) return;
 
   void (async () => {
     try {

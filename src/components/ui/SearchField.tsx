@@ -2,6 +2,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 
 type SearchFieldProps = {
   value: string;
@@ -9,11 +10,9 @@ type SearchFieldProps = {
   placeholder?: string;
 };
 
-export function SearchField({
-  value,
-  onChangeText,
-  placeholder = 'Rechercher une recette, un ingrédient...',
-}: SearchFieldProps) {
+export function SearchField({ value, onChangeText, placeholder }: SearchFieldProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -21,7 +20,7 @@ export function SearchField({
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('home.searchPlaceholder')}
           placeholderTextColor={Colors.textMuted}
           style={styles.input}
           returnKeyType="search"

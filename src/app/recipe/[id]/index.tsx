@@ -31,9 +31,10 @@ import {
   MoreIcon,
 } from '@/components/recipe/detail-icons';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 import type { Difficulty, Recipe } from '@/types/recipe';
-import { COST_LABELS, DIFFICULTY_LABELS, normalizeCostLevel } from '@/utils/format';
+import { formatCost, formatDifficulty, normalizeCostLevel } from '@/utils/format';
 import {
   formatCookingTimeLong,
   formatScaledQuantity,
@@ -50,6 +51,7 @@ function difficultyLevel(value: Difficulty): 1 | 2 | 3 {
 }
 
 export default function RecipeDetailScreen() {
+  const { t, locale } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -114,9 +116,9 @@ export default function RecipeDetailScreen() {
   if (!recipe) {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
-        <Text style={styles.missingTitle}>Recette introuvable</Text>
+        <Text style={styles.missingTitle}>{t('common.recipeNotFound')}</Text>
         <Pressable onPress={() => router.back()} style={styles.missingButton}>
-          <Text style={styles.missingButtonLabel}>Retour</Text>
+          <Text style={styles.missingButtonLabel}>{t('common.back')}</Text>
         </Pressable>
       </View>
     );
@@ -140,7 +142,7 @@ export default function RecipeDetailScreen() {
 
   function confirmDelete() {
     deleteRecipe(currentRecipe.id);
-    showKomiToast('Recette supprimée');
+    showKomiToast(t('detail.toastDeleted'));
     router.replace('/' as Href);
   }
 
@@ -148,19 +150,19 @@ export default function RecipeDetailScreen() {
     setMenuOpen(false);
     const copy = duplicateRecipe(currentRecipe.id);
     if (!copy) return;
-    showKomiToast('Recette dupliquée');
+    showKomiToast(t('detail.toastDuplicated'));
   }
 
   function handleAddToShopping() {
     if (uncheckedIngredients.length === 0) return;
     const count = addIngredientsToShoppingList(currentRecipe, uncheckedIngredients, servings);
     if (count === 0) {
-      setShoppingFeedback({ title: 'Ingrédients déjà ajoutés' });
+      setShoppingFeedback({ title: t('detail.shoppingAlreadyAdded') });
       return;
     }
     setShoppingFeedback({
-      title: 'Liste de courses',
-      message: `${count} ingrédient${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}.`,
+      title: t('detail.shoppingAddedTitle'),
+      message: t('detail.shoppingAddedMessage', { count }),
     });
   }
 
@@ -193,7 +195,7 @@ export default function RecipeDetailScreen() {
             <Image source={{ uri: recipe.photoUri }} style={styles.heroImage} contentFit="cover" />
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
-              <Text style={styles.heroPlaceholderText}>Sans photo</Text>
+              <Text style={styles.heroPlaceholderText}>{t('common.noPhoto')}</Text>
             </View>
           )}
         </View>
@@ -214,12 +216,12 @@ export default function RecipeDetailScreen() {
             <Text style={styles.metaDot}>•</Text>
             <MetaItem
               icon={<DifficultyMetaDots level={difficultyLevel(recipe.difficulty)} />}
-              label={DIFFICULTY_LABELS[recipe.difficulty]}
+              label={formatDifficulty(recipe.difficulty, locale)}
             />
             <Text style={styles.metaDot}>•</Text>
             <MetaItem
               icon={<CostIcon />}
-              label={COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
+              label={formatCost(normalizeCostLevel(recipe.costLevel), locale)}
             />
           </View>
 
@@ -227,13 +229,13 @@ export default function RecipeDetailScreen() {
             <View style={styles.tabsRow}>
               <Pressable style={styles.tab} onPress={() => setTab('ingredients')}>
                 <Text style={[styles.tabLabel, tab === 'ingredients' && styles.tabLabelActive]}>
-                  Ingrédients
+                  {t('detail.tabIngredients')}
                 </Text>
                 {tab === 'ingredients' ? <View style={styles.tabUnderline} /> : null}
               </Pressable>
               <Pressable style={styles.tab} onPress={() => setTab('preparation')}>
                 <Text style={[styles.tabLabel, tab === 'preparation' && styles.tabLabelActive]}>
-                  Préparation
+                  {t('detail.tabPreparation')}
                 </Text>
                 {tab === 'preparation' ? <View style={styles.tabUnderline} /> : null}
               </Pressable>
@@ -268,16 +270,20 @@ export default function RecipeDetailScreen() {
       </AppKeyboardAwareScrollView>
 
       <View style={[styles.stickyActions, { top: insets.top + Spacing.two }]} pointerEvents="box-none">
-        <RoundButton onPress={() => router.back()} accessibilityLabel="Retour">
+        <RoundButton onPress={() => router.back()} accessibilityLabel={t('detail.backA11y')}>
           <BackArrowIcon />
         </RoundButton>
         <View style={styles.heroActionsRight}>
           <RoundButton
             onPress={() => togglePin(recipe.id)}
-            accessibilityLabel={recipe.isPinned ? 'Retirer du menu' : 'Ajouter au menu'}>
+            accessibilityLabel={
+              recipe.isPinned ? t('home.pinRemoveA11y') : t('home.pinAddA11y')
+            }>
             <PinIcon active={recipe.isPinned} size={16} />
           </RoundButton>
-          <RoundButton onPress={() => setMenuOpen(true)} accessibilityLabel="Plus d'options">
+          <RoundButton
+            onPress={() => setMenuOpen(true)}
+            accessibilityLabel={t('detail.moreOptionsA11y')}>
             <MoreIcon />
           </RoundButton>
         </View>
@@ -291,7 +297,7 @@ export default function RecipeDetailScreen() {
             onPress={handleAddToShopping}>
             <CartGlyphIcon />
             <Text style={[styles.shoppingLabel, shoppingDisabled && styles.shoppingLabelDisabled]}>
-              Ajouter [{uncheckedIngredients.length}] à la liste de courses
+              {t('detail.addToShopping', { count: uncheckedIngredients.length })}
             </Text>
           </Pressable>
         ) : null}
@@ -299,13 +305,13 @@ export default function RecipeDetailScreen() {
           style={styles.cookButton}
           onPress={() => {
             if (recipe.steps.length === 0) {
-              Alert.alert('Aucune étape', 'Ajoutez des étapes avant de cuisiner cette recette.');
+              Alert.alert(t('detail.noStepsTitle'), t('detail.noStepsMessage'));
               return;
             }
             router.push(`/recipe/${recipe.id}/cook?servings=${servings}` as Href);
           }}>
           <ChefHatIcon />
-          <Text style={styles.cookLabel}>Cuisiner</Text>
+          <Text style={styles.cookLabel}>{t('detail.cook')}</Text>
         </Pressable>
       </ToastBottomAnchor>
 
@@ -318,19 +324,21 @@ export default function RecipeDetailScreen() {
                 setMenuOpen(false);
                 router.push(`/recipe/${recipe.id}/edit` as Href);
               }}>
-              <Text style={styles.menuItemLabel}>Modifier</Text>
+              <Text style={styles.menuItemLabel}>{t('detail.menuEdit')}</Text>
             </Pressable>
             <Pressable style={styles.menuItem} onPress={openNotesEditor}>
-              <Text style={styles.menuItemLabel}>Ajouter une remarque</Text>
+              <Text style={styles.menuItemLabel}>{t('detail.menuAddNote')}</Text>
             </Pressable>
             <Pressable style={styles.menuItem} onPress={handleDuplicate}>
-              <Text style={styles.menuItemLabel}>Dupliquer</Text>
+              <Text style={styles.menuItemLabel}>{t('detail.menuDuplicate')}</Text>
             </Pressable>
             <Pressable style={styles.menuItem} onPress={handleDelete}>
-              <Text style={[styles.menuItemLabel, styles.menuItemDanger]}>Supprimer</Text>
+              <Text style={[styles.menuItemLabel, styles.menuItemDanger]}>
+                {t('detail.menuDelete')}
+              </Text>
             </Pressable>
             <Pressable style={styles.menuCancel} onPress={() => setMenuOpen(false)}>
-              <Text style={styles.menuCancelLabel}>Annuler</Text>
+              <Text style={styles.menuCancelLabel}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -340,7 +348,7 @@ export default function RecipeDetailScreen() {
         visible={shoppingFeedback != null}
         title={shoppingFeedback?.title ?? ''}
         message={shoppingFeedback?.message}
-        confirmLabel="OK"
+        confirmLabel={t('common.ok')}
         hideCancel
         onClose={() => setShoppingFeedback(null)}
         onConfirm={() => setShoppingFeedback(null)}
@@ -348,10 +356,10 @@ export default function RecipeDetailScreen() {
 
       <KomiConfirmSheet
         visible={deleteConfirmOpen}
-        title="Supprimer la recette"
-        message={`Voulez-vous vraiment supprimer « ${currentRecipe.title} » ?`}
-        cancelLabel="Annuler"
-        confirmLabel="Supprimer"
+        title={t('detail.deleteTitle')}
+        message={t('detail.deleteMessage', { title: currentRecipe.title })}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.delete')}
         destructive
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
@@ -404,10 +412,12 @@ function IngredientsPanel({
   checkedIds: Set<string>;
   onToggleChecked: (id: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.panel}>
       <View style={styles.portionsBar}>
-        <Text style={styles.portionsLabel}>Portions</Text>
+        <Text style={styles.portionsLabel}>{t('detail.portions')}</Text>
         <View style={styles.portionsControls}>
           <Pressable
             style={styles.portionButton}
@@ -473,6 +483,7 @@ function PreparationPanel({
   onSaveNotes: () => void;
   onCancelNotes: () => void;
 }) {
+  const { t } = useTranslation();
   const notesInputRef = useRef<TextInputType>(null);
   const notes = recipe.notes?.trim();
   const noteLines = notes
@@ -497,7 +508,7 @@ function PreparationPanel({
         <View style={styles.notesSection}>
           <View style={styles.notesHeader}>
             <LightbulbIcon size={20} />
-            <Text style={styles.notesTitle}>Remarques</Text>
+            <Text style={styles.notesTitle}>{t('detail.notesTitle')}</Text>
           </View>
           <View style={styles.notesTrack}>
             {editingNotes ? (
@@ -506,7 +517,7 @@ function PreparationPanel({
                   ref={notesInputRef}
                   value={notesDraft}
                   onChangeText={onChangeNotes}
-                  placeholder="Ex : mettre moins de sel, très bon avec une salade…"
+                  placeholder={t('detail.notesPlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   multiline
                   textAlignVertical="top"
@@ -515,10 +526,10 @@ function PreparationPanel({
                 />
                 <View style={styles.notesActions}>
                   <Pressable onPress={onCancelNotes} hitSlop={8}>
-                    <Text style={styles.notesCancel}>Annuler</Text>
+                    <Text style={styles.notesCancel}>{t('detail.notesCancel')}</Text>
                   </Pressable>
                   <Pressable onPress={onSaveNotes} style={styles.notesSave}>
-                    <Text style={styles.notesSaveLabel}>Enregistrer</Text>
+                    <Text style={styles.notesSaveLabel}>{t('detail.notesSave')}</Text>
                   </Pressable>
                 </View>
               </>
@@ -533,12 +544,14 @@ function PreparationPanel({
         </View>
       ) : null}
 
-      <Text style={styles.stepsHeading}>Étapes</Text>
+      <Text style={styles.stepsHeading}>{t('detail.stepsHeading')}</Text>
       {[...recipe.steps]
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((step) => (
+        .map((step, stepIndex) => (
           <View key={step.id} style={styles.stepBlock}>
-            <Text style={styles.stepTitle}>{step.title || 'Étape'}</Text>
+            <Text style={styles.stepTitle}>
+              {step.title || t('form.stepTitleDefault', { n: stepIndex + 1 })}
+            </Text>
             <View style={styles.stepCard}>
               {[...step.subSteps]
                 .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -548,7 +561,7 @@ function PreparationPanel({
                   </Text>
                 ))}
               {step.subSteps.length === 0 ? (
-                <Text style={styles.stepBody}>Aucune sous-étape.</Text>
+                <Text style={styles.stepBody}>{t('detail.noSubSteps')}</Text>
               ) : null}
             </View>
           </View>

@@ -16,6 +16,8 @@ import Svg, { Path } from 'react-native-svg';
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CookingVoiceHelpSheet } from '@/components/cooking/CookingVoiceHelpSheet';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
+import { translate } from '@/i18n';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useCookingVoiceControl } from '@/hooks/useCookingVoiceControl';
 import { useKomiStore } from '@/store/komi-store';
 import type { Ingredient, Step } from '@/types/recipe';
@@ -36,11 +38,13 @@ function stepInstructionSpeech(step: Step): string {
     .filter(Boolean);
   if (bodies.length > 0) return bodies.join('. ');
   const title = step.title.trim();
-  return title.length > 0 ? title : 'Suivez cette étape, puis continuez.';
+  if (title.length > 0) return title;
+  return translate(useKomiStore.getState().locale, 'cook.emptyInstruction');
 }
 
 export default function CookingModeScreen() {
   useKeepAwake();
+  const { t } = useTranslation();
   const { id, servings: servingsParam } = useLocalSearchParams<{ id: string; servings?: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -187,10 +191,10 @@ export default function CookingModeScreen() {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
         <Text style={styles.missingTitle}>
-          {!recipe ? 'Recette introuvable' : 'Aucune étape à cuisiner'}
+          {!recipe ? t('common.recipeNotFound') : t('cook.noSteps')}
         </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.missingLink}>Retour</Text>
+          <Text style={styles.missingLink}>{t('common.back')}</Text>
         </Pressable>
       </View>
     );
@@ -290,12 +294,12 @@ export default function CookingModeScreen() {
     <View style={[styles.root, { paddingTop: insets.top + Spacing.two }]}>
       <View style={styles.topBar}>
         <Text style={styles.stepCounter}>
-          Étape {index + 1}/{steps.length}
+          {t('cook.stepCounter', { current: index + 1, total: steps.length })}
         </Text>
         <View style={styles.topBarActions}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Aide commandes vocales"
+            accessibilityLabel={t('cook.voiceHelpA11y')}
             hitSlop={8}
             onPress={() => setVoiceHelpOpen(true)}
             style={styles.voiceHelpButton}>
@@ -304,7 +308,7 @@ export default function CookingModeScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
-              voiceEnabled ? 'Désactiver le contrôle vocal' : 'Activer le contrôle vocal'
+              voiceEnabled ? t('cook.voiceDisableA11y') : t('cook.voiceEnableA11y')
             }
             accessibilityState={{ selected: voiceEnabled }}
             hitSlop={8}
@@ -317,7 +321,7 @@ export default function CookingModeScreen() {
             <MicGlyph active={voiceEnabled} />
           </Pressable>
           <Pressable onPress={quitCooking} hitSlop={8} style={styles.quitButton}>
-            <Text style={styles.quitLabel}>✕  Quitter</Text>
+            <Text style={styles.quitLabel}>{t('cook.quit')}</Text>
           </Pressable>
         </View>
       </View>
@@ -362,12 +366,12 @@ export default function CookingModeScreen() {
                 <View style={styles.peekTimer}>
                   <TimerGlyph />
                   <Text style={styles.peekTimerLabel}>
-                    {complete ? 'Terminé' : formatCountdown(remaining[step.id] ?? 0)}
+                    {complete ? t('cook.timerDone') : formatCountdown(remaining[step.id] ?? 0)}
                   </Text>
                   {complete ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Fermer le minuteur"
+                      accessibilityLabel={t('cook.timerCloseA11y')}
                       hitSlop={8}
                       onPress={() => resetTimer(step)}
                       style={styles.peekTimerClose}>
@@ -431,7 +435,7 @@ export default function CookingModeScreen() {
                   </View>
                 ))}
               {current.subSteps.length === 0 ? (
-                <Text style={styles.instruction}>Suivez cette étape, puis continuez.</Text>
+                <Text style={styles.instruction}>{t('cook.emptyInstruction')}</Text>
               ) : null}
             </ScrollView>
 
@@ -441,10 +445,10 @@ export default function CookingModeScreen() {
                   isTimerComplete(current.id) ? (
                     <View style={styles.activeTimer}>
                       <TimerGlyph />
-                      <Text style={styles.activeTimerLabel}>Terminé</Text>
+                      <Text style={styles.activeTimerLabel}>{t('cook.timerDone')}</Text>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Fermer le minuteur"
+                        accessibilityLabel={t('cook.timerCloseA11y')}
                         hitSlop={8}
                         onPress={() => resetTimer(current)}
                         style={styles.timerControlButton}>
@@ -461,7 +465,9 @@ export default function CookingModeScreen() {
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={
-                            isTimerPaused(current.id) ? 'Reprendre le minuteur' : 'Mettre en pause'
+                            isTimerPaused(current.id)
+                              ? t('cook.timerResumeA11y')
+                              : t('cook.timerPauseA11y')
                           }
                           hitSlop={8}
                           onPress={() => togglePauseTimer(current)}
@@ -470,7 +476,7 @@ export default function CookingModeScreen() {
                         </Pressable>
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel="Réinitialiser le minuteur"
+                          accessibilityLabel={t('cook.timerResetA11y')}
                           hitSlop={8}
                           onPress={() => resetTimer(current)}
                           style={styles.timerControlButton}>
@@ -483,7 +489,9 @@ export default function CookingModeScreen() {
                   <Pressable style={styles.startTimerButton} onPress={() => startTimer(current)}>
                     <TimerGlyph />
                     <Text style={styles.startTimerLabel}>
-                      Démarrer {formatCountdown(current.timerSeconds)}
+                      {t('cook.startTimer', {
+                        time: formatCountdown(current.timerSeconds),
+                      })}
                     </Text>
                   </Pressable>
                 )}
@@ -499,19 +507,19 @@ export default function CookingModeScreen() {
           disabled={index === 0}
           onPress={goPrev}>
           <Text style={styles.prevIcon}>↑</Text>
-          <Text style={styles.prevLabel}>Précédent</Text>
+          <Text style={styles.prevLabel}>{t('cook.prev')}</Text>
         </Pressable>
         <Pressable style={[styles.navButton, styles.nextButton]} onPress={goNext}>
-          <Text style={styles.nextLabel}>{isLast ? 'Terminer' : 'Suivant'}</Text>
+          <Text style={styles.nextLabel}>{isLast ? t('cook.finish') : t('cook.next')}</Text>
           <Text style={styles.nextIcon}>{isLast ? '✓' : '↓'}</Text>
         </Pressable>
       </View>
 
       <KomiConfirmSheet
         visible={quitOpen}
-        title="Quitter le mode cuisiner ?"
-        cancelLabel="Continuer"
-        confirmLabel="Quitter"
+        title={t('cook.quitConfirmTitle')}
+        cancelLabel={t('common.continue')}
+        confirmLabel={t('common.quit')}
         destructive
         onClose={() => setQuitOpen(false)}
         onConfirm={() => {

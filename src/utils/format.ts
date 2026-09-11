@@ -1,16 +1,25 @@
+import { translate, type AppLocale, type TranslationKey } from '@/i18n';
 import type { CostLevel, Difficulty } from '@/types/recipe';
 
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  facile: 'Facile',
-  moyen: 'Moyen',
-  difficile: 'Difficile',
+const DIFFICULTY_KEYS: Record<Difficulty, TranslationKey> = {
+  facile: 'difficulty.facile',
+  moyen: 'difficulty.moyen',
+  difficile: 'difficulty.difficile',
 };
 
-export const COST_LABELS: Record<CostLevel, string> = {
-  abordable: 'Abordable',
-  modere: 'Modéré',
-  festif: 'Festif',
+const COST_KEYS: Record<CostLevel, TranslationKey> = {
+  abordable: 'cost.abordable',
+  modere: 'cost.modere',
+  festif: 'cost.festif',
 };
+
+export function formatDifficulty(value: Difficulty, locale: AppLocale): string {
+  return translate(locale, DIFFICULTY_KEYS[value]);
+}
+
+export function formatCost(value: CostLevel | string, locale: AppLocale): string {
+  return translate(locale, COST_KEYS[normalizeCostLevel(value)]);
+}
 
 export function normalizeCostLevel(value: string): CostLevel {
   if (value === 'eleve') return 'festif';

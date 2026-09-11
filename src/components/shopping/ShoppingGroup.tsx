@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ShoppingRow } from '@/components/shopping/ShoppingRow';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { ShoppingListItem } from '@/types/recipe';
 
 type ShoppingGroupProps = {
@@ -19,10 +20,12 @@ export function ShoppingGroup({
   onRemove,
   onToggleGroup,
 }: ShoppingGroupProps) {
+  const { t } = useTranslation();
+
   if (items.length === 0) return null;
 
   const allChecked = items.every((item) => item.isChecked);
-  const selectLabel = allChecked ? 'Tout désélectionner' : 'Tout sélectionner';
+  const selectLabel = allChecked ? t('shopping.deselectAll') : t('shopping.selectAll');
 
   return (
     <View style={styles.block}>

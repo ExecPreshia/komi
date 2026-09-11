@@ -13,9 +13,11 @@ import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScro
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function RecipeNotesScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -26,9 +28,9 @@ export default function RecipeNotesScreen() {
   if (!recipe) {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
-        <Text style={styles.missingTitle}>Recette introuvable</Text>
+        <Text style={styles.missingTitle}>{t('common.recipeNotFound')}</Text>
         <Pressable onPress={() => router.replace('/' as Href)}>
-          <Text style={styles.link}>Retour à l’accueil</Text>
+          <Text style={styles.link}>{t('common.backHome')}</Text>
         </Pressable>
       </View>
     );
@@ -47,10 +49,10 @@ export default function RecipeNotesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes notes</Text>
+        <Text style={styles.headerTitle}>{t('notes.title')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t('common.close')}
           onPress={() => router.replace('/' as Href)}
           style={styles.closeButton}>
           <CloseIcon />
@@ -65,14 +67,13 @@ export default function RecipeNotesScreen() {
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}>
         <Text style={styles.prompt}>
-          Pour la prochaine fois : ce que je changerai dans {activeRecipe.title} ou toute autre
-          observation.
+          {t('notes.prompt', { title: activeRecipe.title })}
         </Text>
 
         <TextInput
           value={notes}
           onChangeText={setNotes}
-          placeholder="Ex : mettre moins de sel, très bon avec une salade en accompagnement..."
+          placeholder={t('notes.placeholder')}
           placeholderTextColor={Colors.textMuted}
           multiline
           textAlignVertical="top"
@@ -82,15 +83,15 @@ export default function RecipeNotesScreen() {
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
         <Pressable style={styles.saveButton} onPress={saveNotes}>
-          <Text style={styles.saveLabel}>Enregistrer mes notes</Text>
+          <Text style={styles.saveLabel}>{t('notes.save')}</Text>
         </Pressable>
       </View>
 
       <KomiConfirmSheet
         visible={savedOpen}
-        title="Note enregistrée"
-        message={`Note bien enregistrée pour ${activeRecipe.title}`}
-        confirmLabel="OK"
+        title={t('notes.savedTitle')}
+        message={t('notes.savedMessage', { title: activeRecipe.title })}
+        confirmLabel={t('common.ok')}
         hideCancel
         onClose={() => setSavedOpen(false)}
         onConfirm={() => router.replace('/' as Href)}

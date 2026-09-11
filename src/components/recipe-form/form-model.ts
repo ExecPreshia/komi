@@ -1,3 +1,4 @@
+import { translate, type AppLocale, type TranslationKey } from '@/i18n';
 import type { CostLevel, Difficulty, Ingredient, Recipe, Step, SubStep } from '@/types/recipe';
 import { normalizeCostLevel } from '@/utils/format';
 import { createId } from '@/utils/id';
@@ -45,7 +46,7 @@ export function createEmptyStep(sortOrder: number): Step {
   };
 }
 
-export function createEmptyFormValues(): RecipeFormValues {
+export function createEmptyFormValues(locale: AppLocale): RecipeFormValues {
   return {
     title: '',
     photoUri: null,
@@ -56,7 +57,12 @@ export function createEmptyFormValues(): RecipeFormValues {
     tags: [],
     isPinned: false,
     ingredients: [createEmptyIngredient(0)],
-    steps: [{ ...createEmptyStep(0), title: 'Étape 1' }],
+    steps: [
+      {
+        ...createEmptyStep(0),
+        title: translate(locale, 'form.stepTitleDefault', { n: 1 }),
+      },
+    ],
   };
 }
 
@@ -97,12 +103,20 @@ export function moveItem<T extends { sortOrder: number }>(items: T[], index: num
   return reindex(next);
 }
 
-/** Updates "Étape N" titles after drag reorder; keeps custom step names. */
-export function renumberStepTitles(steps: Step[]): Step[] {
+/** True when the title is an auto-generated "Étape N" / "Step N" label. */
+export function isAutoStepTitle(title: string): boolean {
+  return /^(étape|step)\s*\d+$/i.test(title.trim());
+}
+
+/** Updates auto step titles after drag reorder; keeps custom step names. */
+export function renumberStepTitles(steps: Step[], locale: AppLocale): Step[] {
   return reindex(steps).map((step, index) => {
     const trimmed = step.title.trim();
-    if (!trimmed || /^étape\s*\d+$/i.test(trimmed)) {
-      return { ...step, title: `Étape ${index + 1}` };
+    if (!trimmed || isAutoStepTitle(trimmed)) {
+      return {
+        ...step,
+        title: translate(locale, 'form.stepTitleDefault', { n: index + 1 }),
+      };
     }
     return step;
   });
@@ -115,17 +129,17 @@ export function parseOptionalNumber(value: string): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
-export function validateRecipeForm(values: RecipeFormValues): string | null {
-  if (!values.title.trim()) return 'Ajoutez un titre à la recette.';
-  if (values.baseServings < 1) return 'Le nombre de portions doit être au moins 1.';
+export function validateRecipeForm(values: RecipeFormValues): TranslationKey | null {
+  if (!values.title.trim()) return 'form.errorTitleRequired';
+  if (values.baseServings < 1) return 'form.errorServingsMin';
   const namedIngredients = values.ingredients.filter((item) => item.name.trim());
-  if (namedIngredients.length === 0) return 'Ajoutez au moins un ingrédient.';
+  if (namedIngredients.length === 0) return 'form.errorIngredientRequired';
   const titledSteps = values.steps.filter((step) => step.title.trim());
-  if (titledSteps.length === 0) return 'Ajoutez au moins une étape de préparation.';
+  if (titledSteps.length === 0) return 'form.errorStepRequired';
   for (const step of titledSteps) {
     const hasDescription = step.subSteps.some((sub) => sub.body.trim().length > 0);
     if (!hasDescription) {
-      return 'Chaque étape doit avoir une description.';
+      return 'form.errorStepDescription';
     }
   }
   return null;

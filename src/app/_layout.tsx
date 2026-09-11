@@ -73,7 +73,8 @@ export default function RootLayout() {
             <Stack.Screen name="recipe/[id]/cook" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="recipe/[id]/complete" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="recipe/[id]/notes" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: true, title: 'Paramètres' }} />
+            <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="about" options={{ presentation: 'modal', headerShown: false }} />
           </Stack>
           <KomiToastHost />
         </View>

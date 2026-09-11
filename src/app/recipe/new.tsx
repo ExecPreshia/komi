@@ -9,9 +9,11 @@ import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { showKomiToast } from '@/components/ui/KomiToast';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function NewRecipeScreen() {
+  const { t, locale } = useTranslation();
   const insets = useSafeAreaInsets();
   const addRecipe = useKomiStore((state) => state.addRecipe);
   const [quitOpen, setQuitOpen] = useState(false);
@@ -21,10 +23,10 @@ export default function NewRecipeScreen() {
       <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Nouvelle recette</Text>
+        <Text style={styles.title}>{t('form.newTitle')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t('common.close')}
           onPress={() => setQuitOpen(true)}
           style={styles.closeButton}>
           <CloseIcon />
@@ -32,8 +34,8 @@ export default function NewRecipeScreen() {
       </View>
 
       <RecipeForm
-        initialValues={createEmptyFormValues()}
-        submitLabel="Enregistrer"
+        initialValues={createEmptyFormValues(locale)}
+        submitLabel={t('form.submit')}
         onSubmit={(values) => {
           addRecipe({
             title: values.title,
@@ -47,17 +49,17 @@ export default function NewRecipeScreen() {
             ingredients: values.ingredients,
             steps: values.steps,
           });
-          showKomiToast('Recette enregistrée');
+          showKomiToast(t('form.toastCreated'));
           router.back();
         }}
       />
 
       <KomiConfirmSheet
         visible={quitOpen}
-        title="Êtes-vous sûr de quitter ?"
-        message="Les modifications ne seront pas sauvegardées."
-        cancelLabel="Annuler"
-        confirmLabel="Quitter"
+        title={t('form.quitTitle')}
+        message={t('form.quitMessage')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.quit')}
         destructive
         onClose={() => setQuitOpen(false)}
         onConfirm={() => router.back()}

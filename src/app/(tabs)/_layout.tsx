@@ -2,8 +2,11 @@ import { Tabs } from 'expo-router';
 
 import { KomiTabBar, type KomiTabBarProps } from '@/components/navigation/KomiTabBar';
 import { Colors } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       tabBar={(props) => (
@@ -19,13 +22,13 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Recettes',
+          title: t('tabs.recipes'),
         }}
       />
       <Tabs.Screen
         name="shopping"
         options={{
-          title: 'Courses',
+          title: t('tabs.shopping'),
         }}
       />
     </Tabs>

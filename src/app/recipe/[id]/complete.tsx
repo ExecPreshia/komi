@@ -4,9 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackArrowIcon } from '@/components/recipe/detail-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function RecipeCompleteScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -14,9 +16,9 @@ export default function RecipeCompleteScreen() {
   if (!recipe) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>Recette introuvable</Text>
+        <Text style={styles.title}>{t('common.recipeNotFound')}</Text>
         <Pressable onPress={() => router.replace('/' as Href)}>
-          <Text style={styles.link}>Retour à l’accueil</Text>
+          <Text style={styles.link}>{t('common.backHome')}</Text>
         </Pressable>
       </View>
     );
@@ -27,7 +29,7 @@ export default function RecipeCompleteScreen() {
       <View style={[styles.backRow, { top: insets.top + Spacing.two }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
           onPress={() => router.back()}
           style={styles.roundButton}>
           <BackArrowIcon />
@@ -36,20 +38,22 @@ export default function RecipeCompleteScreen() {
 
       <View style={styles.content}>
         <Text style={styles.emoji}>✦</Text>
-        <Text style={styles.title}>Félicitations ! Bonne dégustation.</Text>
-        <Text style={styles.subtitle}>{recipe.title} — recette terminée</Text>
+        <Text style={styles.title}>{t('complete.title')}</Text>
+        <Text style={styles.subtitle}>
+          {t('complete.subtitle', { title: recipe.title })}
+        </Text>
       </View>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
         <Pressable
           style={styles.primaryButton}
           onPress={() => router.replace('/' as Href)}>
-          <Text style={styles.primaryLabel}>Terminer & quitter</Text>
+          <Text style={styles.primaryLabel}>{t('complete.finishQuit')}</Text>
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
           onPress={() => router.push(`/recipe/${recipe.id}/notes` as Href)}>
-          <Text style={styles.secondaryLabel}>Ajouter une note pour la prochaine fois</Text>
+          <Text style={styles.secondaryLabel}>{t('complete.addNote')}</Text>
         </Pressable>
       </View>
     </View>

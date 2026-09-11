@@ -13,9 +13,11 @@ import { SearchField } from '@/components/ui/SearchField';
 import { GearIcon } from '@/components/ui/icons';
 import { PinIcon } from '@/components/ui/PinIcon';
 import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const recipes = useKomiStore((state) => state.recipes);
   const togglePin = useKomiStore((state) => state.togglePin);
 
@@ -55,7 +57,7 @@ export default function HomeScreen() {
             <KomiLogo width={87} height={32} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Paramètres"
+              accessibilityLabel={t('home.settingsA11y')}
               style={styles.settingsButton}
               onPress={() => router.push('/settings' as Href)}>
               <GearIcon color={Colors.text} />
@@ -78,10 +80,8 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}>
           {recipes.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Mes recettes</Text>
-              <Text style={styles.emptyBody}>
-                Aucune recette pour le moment. Appuyez sur + pour créer une nouvelle recette.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('home.emptyTitle')}</Text>
+              <Text style={styles.emptyBody}>{t('home.emptyBody')}</Text>
             </View>
           ) : (
             <>
@@ -89,7 +89,7 @@ export default function HomeScreen() {
                 <View style={styles.pinnedSection}>
                   <View style={styles.sectionHeader}>
                     <PinIcon size={16} />
-                    <Text style={styles.sectionTitle}>Au menu</Text>
+                    <Text style={styles.sectionTitle}>{t('home.sectionMenu')}</Text>
                   </View>
                   <View style={styles.pinnedTrack}>
                     <ScrollView
@@ -112,9 +112,9 @@ export default function HomeScreen() {
               ) : null}
 
               <View style={styles.listSection}>
-                <Text style={styles.sectionTitle}>Mes recettes</Text>
+                <Text style={styles.sectionTitle}>{t('home.sectionRecipes')}</Text>
                 {list.length === 0 ? (
-                  <Text style={styles.emptyBody}>Aucune recette ne correspond à votre recherche.</Text>
+                  <Text style={styles.emptyBody}>{t('home.noSearchResults')}</Text>
                 ) : (
                   <View style={styles.list}>
                     {list.map((recipe) => (

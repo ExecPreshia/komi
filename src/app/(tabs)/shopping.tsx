@@ -15,6 +15,7 @@ import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScro
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CartIcon } from '@/components/ui/icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 import type { ShoppingListItem } from '@/types/recipe';
 
@@ -25,6 +26,7 @@ type ShoppingSection = {
 };
 
 export default function ShoppingScreen() {
+  const { t } = useTranslation();
   const shoppingList = useKomiStore((state) => state.shoppingList);
   const addManualShoppingItem = useKomiStore((state) => state.addManualShoppingItem);
   const toggleShoppingItem = useKomiStore((state) => state.toggleShoppingItem);
@@ -35,7 +37,14 @@ export default function ShoppingScreen() {
   const [draft, setDraft] = useState('');
   const [clearOpen, setClearOpen] = useState(false);
 
-  const sections = useMemo(() => buildSections(shoppingList), [shoppingList]);
+  const sections = useMemo(
+    () =>
+      buildSections(shoppingList, {
+        fallbackRecipe: t('shopping.fallbackRecipeGroup'),
+        manualGroup: t('shopping.manualGroup'),
+      }),
+    [shoppingList, t],
+  );
   const checkedCount = shoppingList.filter((item) => item.isChecked).length;
 
   function submitManualItem() {
@@ -48,24 +57,30 @@ export default function ShoppingScreen() {
   function handleRemove(id: string) {
     const item = shoppingList.find((entry) => entry.id === id);
     if (!item) return;
-    Alert.alert('Supprimer', `Retirer « ${item.name} » de la liste ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: () => removeShoppingItem(id),
-      },
-    ]);
+    Alert.alert(
+      t('shopping.removeAlertTitle'),
+      t('shopping.removeAlertMessage', { name: item.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => removeShoppingItem(id),
+        },
+      ],
+    );
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={styles.header}>
-          <Text style={styles.title}>Liste de courses</Text>
+          <Text style={styles.title}>{t('shopping.title')}</Text>
           {checkedCount > 0 ? (
             <Pressable onPress={() => setClearOpen(true)} hitSlop={8}>
-              <Text style={styles.clearLabel}>Nettoyer ({checkedCount})</Text>
+              <Text style={styles.clearLabel}>
+                {t('shopping.clearAction', { count: checkedCount })}
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -75,7 +90,7 @@ export default function ShoppingScreen() {
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Ajouter un ingrédient…"
+              placeholder={t('shopping.addPlaceholder')}
               placeholderTextColor={Colors.textMuted}
               style={styles.addInput}
               returnKeyType="done"
@@ -84,7 +99,7 @@ export default function ShoppingScreen() {
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Ajouter à la liste"
+              accessibilityLabel={t('shopping.addA11y')}
               onPress={submitManualItem}
               style={[styles.addButton, !draft.trim() && styles.addButtonDisabled]}
               disabled={!draft.trim()}>
@@ -96,10 +111,7 @@ export default function ShoppingScreen() {
         {shoppingList.length === 0 ? (
           <View style={styles.empty}>
             <CartIcon color={Colors.accent} size={40} />
-            <Text style={styles.emptyText}>
-              Votre liste est vide. Ajoutez les ingrédients manquants depuis une recette ou
-              ajoutez-les manuellement ici.
-            </Text>
+            <Text style={styles.emptyText}>{t('shopping.empty')}</Text>
           </View>
         ) : (
           <AppKeyboardAwareScrollView
@@ -123,10 +135,10 @@ export default function ShoppingScreen() {
 
       <KomiConfirmSheet
         visible={clearOpen}
-        title="Nettoyer la liste"
-        message={`Supprimer ${checkedCount} article${checkedCount > 1 ? 's' : ''} coché${checkedCount > 1 ? 's' : ''} ?`}
-        cancelLabel="Annuler"
-        confirmLabel="Nettoyer"
+        title={t('shopping.clearConfirmTitle')}
+        message={t('shopping.clearConfirmMessage', { count: checkedCount })}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('shopping.clearConfirmAction')}
         destructive
         onClose={() => setClearOpen(false)}
         onConfirm={removeCheckedShoppingItems}
@@ -135,7 +147,10 @@ export default function ShoppingScreen() {
   );
 }
 
-function buildSections(items: ShoppingListItem[]): ShoppingSection[] {
+function buildSections(
+  items: ShoppingListItem[],
+  labels: { fallbackRecipe: string; manualGroup: string },
+): ShoppingSection[] {
   const ordered = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
   const recipeGroups = new Map<string, ShoppingSection>();
   const manual: ShoppingListItem[] = [];
@@ -148,7 +163,7 @@ function buildSections(items: ShoppingListItem[]): ShoppingSection[] {
       } else {
         recipeGroups.set(item.recipeId, {
           key: item.recipeId,
-          title: item.recipeTitle?.trim() || 'Recette',
+          title: item.recipeTitle?.trim() || labels.fallbackRecipe,
           items: [item],
         });
       }
@@ -161,7 +176,7 @@ function buildSections(items: ShoppingListItem[]): ShoppingSection[] {
   if (manual.length > 0) {
     sections.push({
       key: 'manual',
-      title: sections.length > 0 ? 'Ajouts manuels' : null,
+      title: sections.length > 0 ? labels.manualGroup : null,
       items: manual,
     });
   }

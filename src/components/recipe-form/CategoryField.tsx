@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 
 const DEFAULT_CATEGORIES = ['Sauce', 'Marinade', 'Garniture'] as const;
 
@@ -12,6 +13,7 @@ type CategoryFieldProps = {
 };
 
 export function CategoryField({ value, recipeCategories, onChange }: CategoryFieldProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const options = useMemo(() => {
@@ -42,7 +44,7 @@ export function CategoryField({ value, recipeCategories, onChange }: CategoryFie
           onFocus={() => {
             if (hasOptions) setOpen(true);
           }}
-          placeholder="Catégorie (ex : sauce)"
+          placeholder={t('form.categoryPlaceholder')}
           placeholderTextColor={Colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -51,7 +53,7 @@ export function CategoryField({ value, recipeCategories, onChange }: CategoryFie
         {hasOptions ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Afficher les catégories"
+            accessibilityLabel={t('form.categoryShowA11y')}
             hitSlop={8}
             onPress={() => setOpen((current) => !current)}
             style={styles.chevronButton}>

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { Ingredient, Recipe, ShoppingListItem } from '@/types/recipe';
+import type { AppLocale } from '@/i18n/types';
 import { normalizeCostLevel } from '@/utils/format';
 import { createId } from '@/utils/id';
 import { scaleQuantity } from '@/utils/quantity';
@@ -10,8 +11,12 @@ import { scaleQuantity } from '@/utils/quantity';
 type KomiState = {
   recipes: Recipe[];
   shoppingList: ShoppingListItem[];
+  locale: AppLocale;
+  timerSoundEnabled: boolean;
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
+  setLocale: (locale: AppLocale) => void;
+  setTimerSoundEnabled: (enabled: boolean) => void;
   addRecipe: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'notes'> & { notes?: string | null }) => Recipe;
   updateRecipe: (id: string, patch: Partial<Recipe>) => void;
   togglePin: (id: string) => void;
@@ -35,8 +40,12 @@ export const useKomiStore = create<KomiState>()(
     (set, get) => ({
       recipes: [],
       shoppingList: [],
+      locale: 'fr',
+      timerSoundEnabled: true,
       hasHydrated: false,
       setHasHydrated: (value) => set({ hasHydrated: value }),
+      setLocale: (locale) => set({ locale }),
+      setTimerSoundEnabled: (timerSoundEnabled) => set({ timerSoundEnabled }),
       addRecipe: (input) => {
         const now = new Date().toISOString();
         const recipe: Recipe = {
@@ -201,9 +210,14 @@ export const useKomiStore = create<KomiState>()(
     {
       name: 'komi-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 3,
       migrate: (persisted) => {
-        const state = persisted as { recipes?: Recipe[]; shoppingList?: ShoppingListItem[] };
+        const state = persisted as {
+          recipes?: Recipe[];
+          shoppingList?: ShoppingListItem[];
+          locale?: AppLocale;
+          timerSoundEnabled?: boolean;
+        };
         return {
           recipes: (state.recipes ?? []).map((recipe) => ({
             ...recipe,
@@ -213,11 +227,15 @@ export const useKomiStore = create<KomiState>()(
             ...item,
             ingredientId: item.ingredientId ?? null,
           })),
+          locale: state.locale === 'en' ? 'en' : 'fr',
+          timerSoundEnabled: state.timerSoundEnabled !== false,
         };
       },
       partialize: (state) => ({
         recipes: state.recipes,
         shoppingList: state.shoppingList,
+        locale: state.locale,
+        timerSoundEnabled: state.timerSoundEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

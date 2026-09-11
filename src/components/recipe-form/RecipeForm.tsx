@@ -40,9 +40,10 @@ import {
   TrashIcon,
 } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 import type { CostLevel, Difficulty, Ingredient, Step } from '@/types/recipe';
-import { COST_LABELS, normalizeTag } from '@/utils/format';
+import { formatCost, normalizeTag } from '@/utils/format';
 
 type RecipeFormProps = {
   initialValues: RecipeFormValues;
@@ -60,9 +61,11 @@ const COSTS: CostLevel[] = ['abordable', 'modere', 'festif'];
 
 export function RecipeForm({
   initialValues,
-  submitLabel = 'Enregistrer',
+  submitLabel,
   onSubmit,
 }: RecipeFormProps) {
+  const { t, locale } = useTranslation();
+  const resolvedSubmitLabel = submitLabel ?? t('form.submit');
   const insets = useSafeAreaInsets();
   const recipes = useKomiStore((state) => state.recipes);
   const [values, setValues] = useState<RecipeFormValues>(initialValues);
@@ -123,7 +126,7 @@ export function RecipeForm({
   async function pickFromLibrary() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission requise', "Autorisez l'accès à la photothèque pour ajouter une photo.");
+      Alert.alert(t('form.permissionTitle'), t('form.permissionLibrary'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -138,7 +141,7 @@ export function RecipeForm({
   async function takePhoto() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission requise', 'Autorisez l’accès à la caméra pour photographier la recette.');
+      Alert.alert(t('form.permissionTitle'), t('form.permissionCamera'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -195,7 +198,7 @@ export function RecipeForm({
     };
     const error = validateRecipeForm(nextValues);
     if (error) {
-      setIncompleteMessage(error);
+      setIncompleteMessage(t(error));
       setIncompleteOpen(true);
       return;
     }
@@ -209,40 +212,40 @@ export function RecipeForm({
           <View
             hitSlop={8}
             style={styles.dragHandle}
-            accessibilityLabel="Réordonner l'ingrédient">
+            accessibilityLabel={t('form.reorderIngredientA11y')}>
             <DragHandleIcon color={Colors.accent} />
           </View>
         </ReorderDragHandle>
         <View style={styles.ingredientFields}>
-          <FieldLabel text="Ingrédient *" />
+          <FieldLabel text={t('form.ingredientLabel')} />
           <TextInput
             value={item.name}
             onChangeText={(name) => updateIngredient(item.id, { name })}
-            placeholder="Ex : Carottes"
+            placeholder={t('form.ingredientPlaceholder')}
             placeholderTextColor={Colors.textMuted}
             autoCapitalize="sentences"
             style={styles.input}
           />
           <View style={styles.qtyRow}>
             <View style={styles.qtyField}>
-              <FieldLabel text="Qté" />
+              <FieldLabel text={t('form.qtyLabel')} />
               <TextInput
                 value={item.quantity == null ? '' : String(item.quantity)}
                 onChangeText={(text) =>
                   updateIngredient(item.id, { quantity: parseOptionalNumber(text) })
                 }
                 keyboardType="decimal-pad"
-                placeholder="—"
+                placeholder={t('form.qtyPlaceholder')}
                 placeholderTextColor={Colors.textMuted}
                 style={styles.input}
               />
             </View>
             <View style={styles.qtyField}>
-              <FieldLabel text="Unité" />
+              <FieldLabel text={t('form.unitLabel')} />
               <TextInput
                 value={item.unit ?? ''}
                 onChangeText={(unit) => updateIngredient(item.id, { unit })}
-                placeholder="g"
+                placeholder={t('form.unitPlaceholder')}
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -250,7 +253,7 @@ export function RecipeForm({
               />
             </View>
           </View>
-          <FieldLabel text="Catégorie" />
+          <FieldLabel text={t('form.categoryLabel')} />
           <CategoryField
             value={item.category ?? ''}
             recipeCategories={recipeCategories}
@@ -260,7 +263,7 @@ export function RecipeForm({
           />
         </View>
         <Pressable
-          accessibilityLabel="Supprimer l'ingrédient"
+          accessibilityLabel={t('form.deleteIngredientA11y')}
           onPress={() =>
             setValues((current) => ({
               ...current,
@@ -287,23 +290,26 @@ export function RecipeForm({
             <View
               hitSlop={8}
               style={styles.dragHandle}
-              accessibilityLabel="Réordonner l'étape">
+              accessibilityLabel={t('form.reorderStepA11y')}>
               <DragHandleIcon color={Colors.accent} />
             </View>
           </ReorderDragHandle>
           <TextInput
             value={item.title}
             onChangeText={(title) => updateStep(item.id, { title })}
-            placeholder={`Étape ${index + 1}`}
+            placeholder={t('form.stepTitleDefault', { n: index + 1 })}
             placeholderTextColor={Colors.textMuted}
             style={[styles.input, styles.stepTitleInput]}
           />
           <Pressable
-            accessibilityLabel="Supprimer l'étape"
+            accessibilityLabel={t('form.deleteStepA11y')}
             onPress={() =>
               setValues((current) => ({
                 ...current,
-                steps: renumberStepTitles(current.steps.filter((entry) => entry.id !== item.id)),
+                steps: renumberStepTitles(
+                  current.steps.filter((entry) => entry.id !== item.id),
+                  locale,
+                ),
               }))
             }
             style={styles.trashBtn}>
@@ -314,7 +320,7 @@ export function RecipeForm({
         <TextInput
           value={primaryBody}
           onChangeText={(body) => setStepPrimaryBody(item, body)}
-          placeholder="Décrivez cette étape... *"
+          placeholder={t('form.stepBodyPlaceholder')}
           placeholderTextColor={Colors.textMuted}
           multiline
           textAlignVertical="top"
@@ -332,7 +338,7 @@ export function RecipeForm({
                   ),
                 })
               }
-              placeholder={`Sous-étape ${subIndex + 2}`}
+              placeholder={t('form.subStepPlaceholder', { n: subIndex + 2 })}
               placeholderTextColor={Colors.textMuted}
               multiline
               textAlignVertical="top"
@@ -358,12 +364,12 @@ export function RecipeForm({
                   : [...item.subSteps, createEmptySubStep(item.subSteps.length)],
             })
           }>
-          <Text style={styles.addSubStep}>+ Ajouter une sous-étape</Text>
+          <Text style={styles.addSubStep}>{t('form.addSubStep')}</Text>
         </Pressable>
 
-        <FieldLabel text="Ingrédients de l'étape" />
+        <FieldLabel text={t('form.stepIngredientsLabel')} />
         {namedIngredients.length === 0 ? (
-          <Text style={styles.helper}>Ajoutez d’abord des ingrédients pour les lier.</Text>
+          <Text style={styles.helper}>{t('form.stepIngredientsHelper')}</Text>
         ) : (
           <View style={styles.wrapChips}>
             {namedIngredients.map((ingredient) => {
@@ -386,11 +392,11 @@ export function RecipeForm({
           </View>
         )}
 
-        <FieldLabel text="Minuteur (optionnel)" />
+        <FieldLabel text={t('form.timerLabel')} />
         <TextInput
           value={formatTimerInput(item.timerSeconds)}
           onChangeText={(text) => updateStep(item.id, { timerSeconds: parseTimerInput(text) })}
-          placeholder="0:00"
+          placeholder={t('form.timerPlaceholder')}
           placeholderTextColor={Colors.textMuted}
           keyboardType="numbers-and-punctuation"
           style={[styles.input, styles.timerInput]}
@@ -414,16 +420,16 @@ export function RecipeForm({
         onLayout={(event) => onLayout(event.nativeEvent.layout.height)}
         onContentSizeChange={onContentSizeChange}
         showsVerticalScrollIndicator={false}>
-        <FieldLabel text="Titre *" />
+        <FieldLabel text={t('form.titleLabel')} />
         <TextInput
           value={values.title}
           onChangeText={(title) => update('title', title)}
-          placeholder="Ex : Spaghetti bolognaise"
+          placeholder={t('form.titlePlaceholder')}
           placeholderTextColor={Colors.textMuted}
           style={styles.input}
         />
 
-        <FieldLabel text="Photo" />
+        <FieldLabel text={t('form.photoLabel')} />
         <Pressable style={styles.photoTap} onPress={pickPhoto}>
           {values.photoUri ? (
             <>
@@ -432,35 +438,35 @@ export function RecipeForm({
                 style={styles.photoClear}
                 onPress={() => update('photoUri', null)}
                 hitSlop={8}>
-                <Text style={styles.photoClearText}>Retirer</Text>
+                <Text style={styles.photoClearText}>{t('form.photoRemove')}</Text>
               </Pressable>
             </>
           ) : (
             <View style={styles.photoPlaceholder}>
               <CameraIcon />
-              <Text style={styles.photoHint}>Appuyer pour ajouter une photo</Text>
+              <Text style={styles.photoHint}>{t('form.photoHint')}</Text>
             </View>
           )}
         </Pressable>
 
         <View style={styles.metaRow}>
           <View style={styles.metaField}>
-            <FieldLabel text="Temps (min)" />
+            <FieldLabel text={t('form.timeLabel')} />
             <TextInput
               value={timeDraft}
               onChangeText={setTimeDraft}
-              placeholder="Ex : 30"
+              placeholder={t('form.timePlaceholder')}
               placeholderTextColor={Colors.textMuted}
               keyboardType="number-pad"
               style={styles.input}
             />
           </View>
           <View style={styles.metaField}>
-            <FieldLabel text="Portions" />
+            <FieldLabel text={t('form.servingsLabel')} />
             <TextInput
               value={servingsDraft}
               onChangeText={setServingsDraft}
-              placeholder="Ex : 2"
+              placeholder={t('form.servingsPlaceholder')}
               placeholderTextColor={Colors.textMuted}
               keyboardType="number-pad"
               style={styles.input}
@@ -468,7 +474,7 @@ export function RecipeForm({
           </View>
         </View>
 
-        <FieldLabel text="Difficulté" />
+        <FieldLabel text={t('form.difficultyLabel')} />
         <View style={styles.choiceRow}>
           {DIFFICULTIES.map((item) => {
             const selected = values.difficulty === item.value;
@@ -483,7 +489,7 @@ export function RecipeForm({
           })}
         </View>
 
-        <FieldLabel text="Coût" />
+        <FieldLabel text={t('form.costLabel')} />
         <View style={styles.choiceRow}>
           {COSTS.map((level) => {
             const selected = values.costLevel === level;
@@ -493,19 +499,19 @@ export function RecipeForm({
                 onPress={() => update('costLevel', level)}
                 style={[styles.costChip, selected && styles.costChipSelected]}>
                 <Text style={[styles.costLabel, selected && styles.costLabelSelected]}>
-                  {COST_LABELS[level]}
+                  {formatCost(level, locale)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <FieldLabel text="Tags" />
+        <FieldLabel text={t('form.tagsLabel')} />
         <View style={styles.tagRow}>
           <TextInput
             value={tagDraft}
             onChangeText={setTagDraft}
-            placeholder="Ex : rapide, chaud, riz"
+            placeholder={t('form.tagsPlaceholder')}
             placeholderTextColor={Colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -513,7 +519,10 @@ export function RecipeForm({
             onSubmitEditing={() => addTag()}
             returnKeyType="done"
           />
-          <Pressable accessibilityLabel="Ajouter un tag" style={styles.tagAdd} onPress={() => addTag()}>
+          <Pressable
+            accessibilityLabel={t('form.addTagA11y')}
+            style={styles.tagAdd}
+            onPress={() => addTag()}>
             <PlusIcon color={Colors.white} size={18} />
           </Pressable>
         </View>
@@ -537,7 +546,7 @@ export function RecipeForm({
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Ingrédients</Text>
+        <Text style={styles.sectionTitle}>{t('form.ingredientsSection')}</Text>
         <ReorderableList
           data={values.ingredients}
           onReorder={(data) => update('ingredients', reindexItems(data))}
@@ -553,13 +562,13 @@ export function RecipeForm({
               createEmptyIngredient(values.ingredients.length),
             ])
           }>
-          <Text style={styles.dashedAddLabel}>+ Ajouter un ingrédient</Text>
+          <Text style={styles.dashedAddLabel}>{t('form.addIngredient')}</Text>
         </Pressable>
 
-        <Text style={styles.sectionTitle}>Étapes</Text>
+        <Text style={styles.sectionTitle}>{t('form.stepsSection')}</Text>
         <ReorderableList
           data={values.steps}
-          onReorder={(data) => update('steps', renumberStepTitles(data))}
+          onReorder={(data) => update('steps', renumberStepTitles(data, locale))}
           onDragStateChange={(dragging) => setScrollEnabled(!dragging)}
           scrollController={scrollController}
           renderItem={renderStep}
@@ -571,36 +580,36 @@ export function RecipeForm({
               ...values.steps,
               {
                 ...createEmptyStep(values.steps.length),
-                title: `Étape ${values.steps.length + 1}`,
+                title: t('form.stepTitleDefault', { n: values.steps.length + 1 }),
               },
             ])
           }>
-          <Text style={styles.dashedAddLabel}>+ Ajouter une étape</Text>
+          <Text style={styles.dashedAddLabel}>{t('form.addStep')}</Text>
         </Pressable>
       </AppKeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.three) }]}>
         <Pressable style={styles.saveButton} onPress={handleSubmit}>
-          <Text style={styles.saveLabel}>{submitLabel}</Text>
+          <Text style={styles.saveLabel}>{resolvedSubmitLabel}</Text>
         </Pressable>
       </View>
 
       <KomiActionSheet
         visible={photoSheetOpen}
-        title="Photo de la recette"
+        title={t('form.photoSheetTitle')}
         items={[
-          { label: 'Galerie', onPress: () => void pickFromLibrary() },
-          { label: 'Appareil photo', onPress: () => void takePhoto() },
+          { label: t('form.photoGallery'), onPress: () => void pickFromLibrary() },
+          { label: t('form.photoCamera'), onPress: () => void takePhoto() },
         ]}
-        cancelLabel="Annuler"
+        cancelLabel={t('common.cancel')}
         onClose={() => setPhotoSheetOpen(false)}
       />
 
       <KomiConfirmSheet
         visible={incompleteOpen}
-        title="Recette incomplète"
+        title={t('form.incompleteTitle')}
         message={incompleteMessage}
-        confirmLabel="OK"
+        confirmLabel={t('common.ok')}
         hideCancel
         onClose={() => setIncompleteOpen(false)}
         onConfirm={() => setIncompleteOpen(false)}

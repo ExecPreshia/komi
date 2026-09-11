@@ -5,8 +5,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TagOverflowRow } from '@/components/home/TagOverflowRow';
 import { PinIcon } from '@/components/ui/PinIcon';
 import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { Recipe } from '@/types/recipe';
-import { COST_LABELS, DIFFICULTY_LABELS, formatCookingTime, normalizeCostLevel } from '@/utils/format';
+import { formatCookingTime, formatCost, formatDifficulty, normalizeCostLevel } from '@/utils/format';
 
 type PinnedRecipeCardProps = {
   recipe: Recipe;
@@ -15,6 +16,7 @@ type PinnedRecipeCardProps = {
 };
 
 export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCardProps) {
+  const { t, locale } = useTranslation();
   const [bodyWidth, setBodyWidth] = useState(0);
 
   return (
@@ -24,7 +26,7 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
           <Image source={{ uri: recipe.photoUri }} style={styles.image} contentFit="cover" />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Text style={styles.placeholderText}>Sans photo</Text>
+            <Text style={styles.placeholderText}>{t('common.noPhoto')}</Text>
           </View>
         )}
       </View>
@@ -42,7 +44,7 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Retirer du menu"
+            accessibilityLabel={t('home.pinRemoveA11y')}
             hitSlop={8}
             onPress={onPressPin}>
             <PinIcon active size={16} />
@@ -54,8 +56,9 @@ export function PinnedRecipeCard({ recipe, onPress, onPressPin }: PinnedRecipeCa
           containerWidth={bodyWidth}
         />
         <Text style={styles.meta}>
-          {formatCookingTime(recipe.cookingTimeMinutes)} · {DIFFICULTY_LABELS[recipe.difficulty]} ·{' '}
-          {COST_LABELS[normalizeCostLevel(recipe.costLevel)]}
+          {formatCookingTime(recipe.cookingTimeMinutes)} ·{' '}
+          {formatDifficulty(recipe.difficulty, locale)} ·{' '}
+          {formatCost(normalizeCostLevel(recipe.costLevel), locale)}
         </Text>
       </View>
     </Pressable>

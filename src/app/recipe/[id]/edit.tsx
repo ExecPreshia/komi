@@ -9,9 +9,11 @@ import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { showKomiToast } from '@/components/ui/KomiToast';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 
 export default function EditRecipeScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -21,9 +23,9 @@ export default function EditRecipeScreen() {
   if (!recipe) {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
-        <Text style={styles.missingTitle}>Recette introuvable</Text>
+        <Text style={styles.missingTitle}>{t('common.recipeNotFound')}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.missingLink}>Retour</Text>
+          <Text style={styles.missingLink}>{t('common.back')}</Text>
         </Pressable>
       </View>
     );
@@ -34,10 +36,10 @@ export default function EditRecipeScreen() {
       <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Modifier</Text>
+        <Text style={styles.title}>{t('form.editTitle')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t('common.close')}
           onPress={() => setQuitOpen(true)}
           style={styles.closeButton}>
           <CloseIcon />
@@ -46,7 +48,7 @@ export default function EditRecipeScreen() {
 
       <RecipeForm
         initialValues={recipeToFormValues(recipe)}
-        submitLabel="Enregistrer"
+        submitLabel={t('form.submit')}
         onSubmit={(values) => {
           updateRecipe(recipe.id, {
             title: values.title,
@@ -60,17 +62,17 @@ export default function EditRecipeScreen() {
             ingredients: values.ingredients,
             steps: values.steps,
           });
-          showKomiToast('Modifications enregistrées');
+          showKomiToast(t('form.toastUpdated'));
           router.back();
         }}
       />
 
       <KomiConfirmSheet
         visible={quitOpen}
-        title="Êtes-vous sûr de quitter ?"
-        message="Les modifications ne seront pas sauvegardées."
-        cancelLabel="Annuler"
-        confirmLabel="Quitter"
+        title={t('form.quitTitle')}
+        message={t('form.quitMessage')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.quit')}
         destructive
         onClose={() => setQuitOpen(false)}
         onConfirm={() => router.back()}
