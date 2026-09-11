@@ -18,6 +18,7 @@ import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
 import type { Ingredient, Step } from '@/types/recipe';
 import { formatScaledQuantity, scaleQuantity } from '@/utils/quantity';
+import { playTimerCompleteFeedback } from '@/utils/timer-complete-feedback';
 import { formatCountdown } from '@/utils/timer';
 
 type TimerMap = Record<string, number>;
@@ -44,6 +45,8 @@ export default function CookingModeScreen() {
   const [quitOpen, setQuitOpen] = useState(false);
   const indexRef = useRef(0);
   const pausedRef = useRef(pausedIds);
+  /** Timers that already fired completion SFX/vibration while sitting at 00:00. */
+  const completedFeedbackRef = useRef<Set<string>>(new Set());
   indexRef.current = index;
   pausedRef.current = pausedIds;
 
@@ -51,6 +54,7 @@ export default function CookingModeScreen() {
     setIndex(0);
     setRemaining({});
     setPausedIds(new Set());
+    completedFeedbackRef.current = new Set();
   }, [recipe?.id]);
 
   useEffect(() => {
@@ -70,6 +74,25 @@ export default function CookingModeScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const announced = completedFeedbackRef.current;
+    for (const [stepId, value] of Object.entries(remaining)) {
+      if (value > 0) {
+        announced.delete(stepId);
+        continue;
+      }
+      if (value === 0 && !announced.has(stepId)) {
+        announced.add(stepId);
+        playTimerCompleteFeedback();
+      }
+    }
+    for (const stepId of [...announced]) {
+      if (!Object.prototype.hasOwnProperty.call(remaining, stepId)) {
+        announced.delete(stepId);
+      }
+    }
+  }, [remaining]);
 
   const goNext = useCallback(() => {
     if (!recipe) return;

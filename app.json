@@ -38,6 +38,15 @@
           "photosPermission": "Komi a besoin d’accéder à vos photos pour illustrer vos recettes.",
           "cameraPermission": "Komi a besoin de la caméra pour photographier vos recettes."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
