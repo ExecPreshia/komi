@@ -14,7 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
+import { CookingVoiceHelpSheet } from '@/components/cooking/CookingVoiceHelpSheet';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
+import { useCookingVoiceControl } from '@/hooks/useCookingVoiceControl';
 import { useKomiStore } from '@/store/komi-store';
 import type { Ingredient, Step } from '@/types/recipe';
 import { formatScaledQuantity, scaleQuantity } from '@/utils/quantity';
@@ -26,6 +28,16 @@ type TimerMap = Record<string, number>;
 const PREV_BARE_PEEK = 14;
 const PREV_TIMER_PEEK = 52;
 const NEXT_PEEK = 48;
+
+function stepInstructionSpeech(step: Step): string {
+  const bodies = [...step.subSteps]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((sub) => sub.body.trim())
+    .filter(Boolean);
+  if (bodies.length > 0) return bodies.join('. ');
+  const title = step.title.trim();
+  return title.length > 0 ? title : 'Suivez cette étape, puis continuez.';
+}
 
 export default function CookingModeScreen() {
   useKeepAwake();
@@ -43,18 +55,23 @@ export default function CookingModeScreen() {
   const [remaining, setRemaining] = useState<TimerMap>({});
   const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
   const [quitOpen, setQuitOpen] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceHelpOpen, setVoiceHelpOpen] = useState(false);
   const indexRef = useRef(0);
   const pausedRef = useRef(pausedIds);
+  const stepsRef = useRef(steps);
   /** Timers that already fired completion SFX/vibration while sitting at 00:00. */
   const completedFeedbackRef = useRef<Set<string>>(new Set());
   indexRef.current = index;
   pausedRef.current = pausedIds;
+  stepsRef.current = steps;
 
   useEffect(() => {
     setIndex(0);
     setRemaining({});
     setPausedIds(new Set());
     completedFeedbackRef.current = new Set();
+    setVoiceEnabled(false);
   }, [recipe?.id]);
 
   useEffect(() => {
@@ -106,6 +123,50 @@ export default function CookingModeScreen() {
   const goPrev = useCallback(() => {
     setIndex((value) => Math.max(0, value - 1));
   }, []);
+
+  const startTimerForStep = useCallback((step: Step) => {
+    if (!step.timerSeconds || step.timerSeconds <= 0) return;
+    setRemaining((current) => {
+      if (Object.prototype.hasOwnProperty.call(current, step.id)) return current;
+      return {
+        ...current,
+        [step.id]: step.timerSeconds!,
+      };
+    });
+    setPausedIds((current) => {
+      if (!current.has(step.id)) return current;
+      const next = new Set(current);
+      next.delete(step.id);
+      return next;
+    });
+  }, []);
+
+  const voiceHandlers = useMemo(
+    () => ({
+      onNext: goNext,
+      onPrev: goPrev,
+      onReadInstruction: () => {
+        const step = stepsRef.current[indexRef.current];
+        return step ? stepInstructionSpeech(step) : '';
+      },
+      onStartTimer: () => {
+        const step = stepsRef.current[indexRef.current];
+        if (step) startTimerForStep(step);
+      },
+    }),
+    [goNext, goPrev, startTimerForStep],
+  );
+
+  const { listening: voiceListening, unavailable: voiceUnavailable } = useCookingVoiceControl(
+    voiceEnabled,
+    voiceHandlers,
+  );
+
+  useEffect(() => {
+    if (voiceUnavailable && voiceEnabled) {
+      setVoiceEnabled(false);
+    }
+  }, [voiceUnavailable, voiceEnabled]);
 
   const stackSwipe = useMemo(
     () =>
@@ -170,16 +231,7 @@ export default function CookingModeScreen() {
   const bottomInset = next ? NEXT_PEEK : 0;
 
   function startTimer(step: Step) {
-    if (!step.timerSeconds || step.timerSeconds <= 0 || hasTimerStarted(step.id)) return;
-    setRemaining((current) => ({
-      ...current,
-      [step.id]: step.timerSeconds!,
-    }));
-    setPausedIds((current) => {
-      const next = new Set(current);
-      next.delete(step.id);
-      return next;
-    });
+    startTimerForStep(step);
   }
 
   function togglePauseTimer(step: Step) {
@@ -240,9 +292,34 @@ export default function CookingModeScreen() {
         <Text style={styles.stepCounter}>
           Étape {index + 1}/{steps.length}
         </Text>
-        <Pressable onPress={quitCooking} hitSlop={8} style={styles.quitButton}>
-          <Text style={styles.quitLabel}>✕  Quitter</Text>
-        </Pressable>
+        <View style={styles.topBarActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Aide commandes vocales"
+            hitSlop={8}
+            onPress={() => setVoiceHelpOpen(true)}
+            style={styles.voiceHelpButton}>
+            <Text style={styles.voiceHelpLabel}>?</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              voiceEnabled ? 'Désactiver le contrôle vocal' : 'Activer le contrôle vocal'
+            }
+            accessibilityState={{ selected: voiceEnabled }}
+            hitSlop={8}
+            onPress={() => setVoiceEnabled((value) => !value)}
+            style={[
+              styles.voiceMicButton,
+              voiceEnabled && styles.voiceMicButtonActive,
+              voiceEnabled && voiceListening && styles.voiceMicButtonListening,
+            ]}>
+            <MicGlyph active={voiceEnabled} />
+          </Pressable>
+          <Pressable onPress={quitCooking} hitSlop={8} style={styles.quitButton}>
+            <Text style={styles.quitLabel}>✕  Quitter</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.progressRow}>
@@ -437,9 +514,36 @@ export default function CookingModeScreen() {
         confirmLabel="Quitter"
         destructive
         onClose={() => setQuitOpen(false)}
-        onConfirm={() => router.back()}
+        onConfirm={() => {
+          setVoiceEnabled(false);
+          router.back();
+        }}
       />
+
+      <CookingVoiceHelpSheet visible={voiceHelpOpen} onClose={() => setVoiceHelpOpen(false)} />
     </View>
+  );
+}
+
+function MicGlyph({ active }: { active: boolean }) {
+  const color = active ? Colors.white : Colors.text;
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 3C10.3 3 9 4.3 9 6V11C9 12.7 10.3 14 12 14C13.7 14 15 12.7 15 11V6C15 4.3 13.7 3 12 3Z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7 11C7 13.8 9.2 16 12 16C14.8 16 17 13.8 17 11"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+      <Path d="M12 16V20" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M9 20H15" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
   );
 }
 
@@ -543,13 +647,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
   },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   stepCounter: {
     fontFamily: Fonts.bodyMedium,
     fontSize: 14,
     color: Colors.text,
   },
+  voiceHelpButton: {
+    width: 34,
+    height: 34,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceHelpLabel: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  voiceMicButton: {
+    width: 34,
+    height: 34,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceMicButtonActive: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  voiceMicButtonListening: {
+    opacity: 0.92,
+    borderColor: Colors.text,
+    borderWidth: 2,
+  },
   quitButton: {
     paddingVertical: Spacing.one,
+    paddingLeft: Spacing.one,
   },
   quitLabel: {
     fontFamily: Fonts.bodyMedium,

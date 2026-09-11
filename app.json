@@ -47,6 +47,14 @@
           "recordAudioAndroid": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Komi a besoin du micro pour les commandes vocales en mode cuisiner.",
+          "speechRecognitionPermission": "Komi a besoin de la reconnaissance vocale pour contrôler le mode cuisiner mains libres.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
       ]
     ],
     "experiments": {
