@@ -85,25 +85,36 @@ function resolveHoverIndex(from: number, effective: number, heights: number[]): 
   return target;
 }
 
-/** After the active row collapses to height 0, shift packed neighbors to open a gap at hover. */
+/**
+ * Move the reserved drop hole with transforms only.
+ * The active slot always keeps `height` in layout; neighbors slide into / out of
+ * that hole so total list height stays stable and cards below never collapse.
+ */
 function getPackedShift(index: number, from: number, hover: number, height: number): number {
-  if (index === from) return 0;
-  const packedIndex = index > from ? index - 1 : index;
-  const packedHover = hover > from ? hover - 1 : hover;
-  return packedIndex >= packedHover ? height : 0;
+  if (index === from || hover === from) return 0;
+  if (hover > from) {
+    // Hole moves down: items between origin and hover slide up into the reserved space.
+    return index > from && index <= hover ? -height : 0;
+  }
+  // Hole moves up: items between hover and origin slide down.
+  return index >= hover && index < from ? height : 0;
 }
 
+/** Top of the dashed drop indicator — matches the visual hole created by getPackedShift. */
 function getPlaceholderTop(from: number, hover: number, heights: number[]): number {
-  const packedHover = hover > from ? hover - 1 : hover;
-  let y = 0;
-  let packed = 0;
-  for (let i = 0; i < heights.length; i += 1) {
-    if (i === from) continue;
-    if (packed >= packedHover) break;
-    y += heights[i] ?? 120;
-    packed += 1;
+  const reserved = heights[from] ?? 120;
+  if (hover <= from) {
+    let y = 0;
+    for (let i = 0; i < hover; i += 1) {
+      y += heights[i] ?? 120;
+    }
+    return y;
   }
-  return y;
+  let y = 0;
+  for (let i = 0; i <= hover; i += 1) {
+    y += heights[i] ?? 120;
+  }
+  return y - reserved;
 }
 
 /**
@@ -424,9 +435,17 @@ function ReorderableRow<T extends { id: string }>({
     elevation: isActive ? 6 : 0,
   }));
 
+  // Always keep the dragged card's measured height in layout. Neighbors only
+  // translate to move the visual drop hole — layout space never collapses.
+  const activeSlotHeight = isActive && isDragging ? activeHeight : undefined;
+
   return (
     <View
-      style={[styles.slot, isActive && styles.slotActive]}
+      style={[
+        styles.slot,
+        isActive && styles.slotActive,
+        activeSlotHeight != null ? { height: activeSlotHeight } : null,
+      ]}
       onLayout={(event) => {
         if (!isActive) onLayoutHeight(event.nativeEvent.layout.height);
       }}>
@@ -507,8 +526,8 @@ const styles = StyleSheet.create({
     // Keeps layout height while the row is not active.
   },
   slotActive: {
-    // Collapse in-flow space so neighbors can open a single insertion gap.
-    height: 0,
+    // Height stays equal to the dragged card for the whole gesture so the list
+    // does not reflow; getPackedShift only moves the visual drop hole.
     marginBottom: 0,
     overflow: 'visible',
     zIndex: 20,

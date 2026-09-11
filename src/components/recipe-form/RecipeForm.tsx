@@ -477,7 +477,7 @@ export function RecipeForm({
                 key={item.value}
                 onPress={() => update('difficulty', item.value)}
                 style={[styles.difficultyBox, selected && styles.difficultyBoxSelected]}>
-                <DifficultyDots level={item.dots} />
+                <DifficultyDots level={item.dots} selected={selected} />
               </Pressable>
             );
           })}
@@ -726,8 +726,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   difficultyBoxSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: '#FBF1F0',
+    backgroundColor: Colors.text,
+    borderColor: Colors.text,
   },
   costChip: {
     flex: 1,

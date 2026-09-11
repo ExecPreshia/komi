@@ -131,13 +131,15 @@ export default function CookingModeScreen() {
     return hasTimerStarted(stepId) && (remaining[stepId] ?? 0) > 0;
   }
 
-  /** Nearest previous step with an in-progress timer (Figma exception for peek height). */
-  const timerPrevious =
-    [...steps.slice(0, index)].reverse().find((step) => isTimerActive(step.id)) ?? null;
-
-  const topPeekStep = timerPrevious ?? previous;
-  const topPeekExpanded = Boolean(timerPrevious);
-  const topInset = topPeekStep ? (topPeekExpanded ? PREV_TIMER_PEEK : PREV_BARE_PEEK) : 0;
+  /** All previous steps with an in-progress timer (oldest → newest for the stack). */
+  const timerPreviousSteps = steps.slice(0, index).filter((step) => isTimerActive(step.id));
+  const showBarePrevious = timerPreviousSteps.length === 0 && previous != null;
+  const topInset =
+    timerPreviousSteps.length > 0
+      ? timerPreviousSteps.length * PREV_TIMER_PEEK
+      : showBarePrevious
+        ? PREV_BARE_PEEK
+        : 0;
   const bottomInset = next ? NEXT_PEEK : 0;
 
   function startTimer(step: Step) {
@@ -238,29 +240,34 @@ export default function CookingModeScreen() {
             </View>
           ) : null}
 
-          {topPeekStep ? (
+          {timerPreviousSteps.map((step, peekIndex) => (
             <Pressable
+              key={step.id}
               style={[
                 styles.stackCard,
                 styles.prevCard,
-                topPeekExpanded ? styles.prevCardExpanded : styles.prevCardBare,
+                styles.prevCardExpanded,
+                { top: peekIndex * PREV_TIMER_PEEK, zIndex: 1 + peekIndex },
               ]}
-              onPress={goPrev}
-              disabled={!topPeekExpanded}>
-              {topPeekExpanded ? (
-                <>
-                  <Text style={styles.peekTitle} numberOfLines={1}>
-                    {stepHeading(topPeekStep)}
-                  </Text>
-                  <View style={styles.peekTimer}>
-                    <TimerGlyph />
-                    <Text style={styles.peekTimerLabel}>
-                      {formatCountdown(remaining[topPeekStep.id] ?? 0)}
-                    </Text>
-                  </View>
-                </>
-              ) : null}
+              onPress={goPrev}>
+              <Text style={styles.peekTitle} numberOfLines={1}>
+                {stepHeading(step)}
+              </Text>
+              <View style={styles.peekTimer}>
+                <TimerGlyph />
+                <Text style={styles.peekTimerLabel}>
+                  {formatCountdown(remaining[step.id] ?? 0)}
+                </Text>
+              </View>
             </Pressable>
+          ))}
+
+          {showBarePrevious ? (
+            <Pressable
+              style={[styles.stackCard, styles.prevCard, styles.prevCardBare]}
+              onPress={goPrev}
+              disabled
+            />
           ) : null}
 
           <View

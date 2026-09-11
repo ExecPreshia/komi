@@ -1,9 +1,11 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RecipeForm } from '@/components/recipe-form/RecipeForm';
 import { recipeToFormValues } from '@/components/recipe-form/form-model';
+import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
 import { CloseIcon } from '@/components/ui/form-icons';
 import { Colors, Fonts, Radii, Spacing } from '@/constants/theme';
 import { useKomiStore } from '@/store/komi-store';
@@ -13,6 +15,7 @@ export default function EditRecipeScreen() {
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
   const updateRecipe = useKomiStore((state) => state.updateRecipe);
+  const [quitOpen, setQuitOpen] = useState(false);
 
   if (!recipe) {
     return (
@@ -34,7 +37,7 @@ export default function EditRecipeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Fermer"
-          onPress={() => router.back()}
+          onPress={() => setQuitOpen(true)}
           style={styles.closeButton}>
           <CloseIcon />
         </Pressable>
@@ -58,6 +61,17 @@ export default function EditRecipeScreen() {
           });
           router.back();
         }}
+      />
+
+      <KomiConfirmSheet
+        visible={quitOpen}
+        title="Êtes-vous sûr de quitter ?"
+        message="Les modifications ne seront pas sauvegardées."
+        cancelLabel="Annuler"
+        confirmLabel="Quitter"
+        destructive
+        onClose={() => setQuitOpen(false)}
+        onConfirm={() => router.back()}
       />
     </View>
   );

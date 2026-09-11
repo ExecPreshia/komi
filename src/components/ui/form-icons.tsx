@@ -50,7 +50,18 @@ export function PlusIcon({ color = Colors.white, size = 16 }: IconProps) {
   );
 }
 
-export function DifficultyDots({ level, size = 10 }: { level: 1 | 2 | 3; size?: number }) {
+export function DifficultyDots({
+  level,
+  size = 10,
+  selected = false,
+}: {
+  level: 1 | 2 | 3;
+  size?: number;
+  selected?: boolean;
+}) {
+  const activeFill = selected ? Colors.white : Colors.accent;
+  const inactiveFill = selected ? 'rgba(255,255,255,0.35)' : '#F0C8C6';
+
   return (
     <Svg width={size * 3 + 12} height={size} viewBox={`0 0 ${size * 3 + 12} ${size}`} fill="none">
       {[0, 1, 2].map((index) => (
@@ -59,7 +70,7 @@ export function DifficultyDots({ level, size = 10 }: { level: 1 | 2 | 3; size?: 
           cx={size / 2 + index * (size + 6)}
           cy={size / 2}
           r={size / 2}
-          fill={index < level ? Colors.accent : '#F0C8C6'}
+          fill={index < level ? activeFill : inactiveFill}
         />
       ))}
     </Svg>
