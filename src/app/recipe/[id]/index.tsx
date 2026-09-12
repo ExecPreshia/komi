@@ -59,6 +59,7 @@ export default function RecipeDetailScreen() {
   const deleteRecipe = useKomiStore((state) => state.deleteRecipe);
   const duplicateRecipe = useKomiStore((state) => state.duplicateRecipe);
   const addIngredientsToShoppingList = useKomiStore((state) => state.addIngredientsToShoppingList);
+  const shoppingList = useKomiStore((state) => state.shoppingList);
 
   const [tab, setTab] = useState<DetailTab>('ingredients');
   const [servings, setServings] = useState(2);
@@ -90,10 +91,18 @@ export default function RecipeDetailScreen() {
     [recipe],
   );
 
-  const uncheckedIngredients = useMemo(() => {
+  const missingShoppingIngredients = useMemo(() => {
     if (!recipe) return [];
-    return recipe.ingredients.filter((item) => !checkedIds.has(item.id));
-  }, [recipe, checkedIds]);
+    // Already covered when actively on this recipe's shopping list (not completed).
+    const activeIngredientIds = new Set(
+      shoppingList
+        .filter((item) => item.recipeId === recipe.id && item.ingredientId && !item.isChecked)
+        .map((item) => item.ingredientId as string),
+    );
+    return recipe.ingredients.filter(
+      (item) => !checkedIds.has(item.id) && !activeIngredientIds.has(item.id),
+    );
+  }, [recipe, shoppingList, checkedIds]);
 
   const goToIngredients = useCallback(() => setTab('ingredients'), []);
   const goToPreparation = useCallback(() => setTab('preparation'), []);
@@ -154,8 +163,8 @@ export default function RecipeDetailScreen() {
   }
 
   function handleAddToShopping() {
-    if (uncheckedIngredients.length === 0) return;
-    const count = addIngredientsToShoppingList(currentRecipe, uncheckedIngredients, servings);
+    if (missingShoppingIngredients.length === 0) return;
+    const count = addIngredientsToShoppingList(currentRecipe, missingShoppingIngredients, servings);
     if (count === 0) {
       setShoppingFeedback({ title: t('detail.shoppingAlreadyAdded') });
       return;
@@ -180,7 +189,8 @@ export default function RecipeDetailScreen() {
   }
 
   const footerPadding = Math.max(insets.bottom, Spacing.three);
-  const shoppingDisabled = uncheckedIngredients.length === 0;
+  const missingShoppingCount = missingShoppingIngredients.length;
+  const shoppingDisabled = missingShoppingCount === 0;
 
   return (
     <View style={styles.root}>
@@ -297,7 +307,9 @@ export default function RecipeDetailScreen() {
             onPress={handleAddToShopping}>
             <CartGlyphIcon />
             <Text style={[styles.shoppingLabel, shoppingDisabled && styles.shoppingLabelDisabled]}>
-              {t('detail.addToShopping', { count: uncheckedIngredients.length })}
+              {t(missingShoppingCount === 1 ? 'detail.addToShoppingOne' : 'detail.addToShopping', {
+                count: missingShoppingCount,
+              })}
             </Text>
           </Pressable>
         ) : null}
