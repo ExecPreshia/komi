@@ -3,7 +3,13 @@ import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import * as Speech from 'expo-speech';
 
-import { matchCookingVoiceCommand } from '@/utils/cooking-voice-commands';
+import type { AppLocale } from '@/i18n/types';
+import { useKomiStore } from '@/store/komi-store';
+import {
+  matchCookingVoiceCommand,
+  VOICE_CONTEXTUAL_STRINGS,
+  VOICE_SPEECH_LANG,
+} from '@/utils/cooking-voice-commands';
 
 type VoiceHandlers = {
   onNext: () => void;
@@ -53,12 +59,15 @@ function isSpeechRecognitionAvailable(): boolean {
 
 /**
  * Hands-free Cooking Mode voice loop: listen → match → act → keep listening.
+ * Recognition language and command phrases follow the app locale (FR / EN).
  * No-ops safely when the native speech-recognition module is unavailable (Expo Go).
  */
 export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers) {
+  const locale = useKomiStore((state) => state.locale);
   const [listening, setListening] = useState(false);
   const [unavailable, setUnavailable] = useState(() => !SpeechRecognition);
   const enabledRef = useRef(enabled);
+  const localeRef = useRef<AppLocale>(locale);
   const speakingRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCommandAtRef = useRef(0);
@@ -67,6 +76,7 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
   const stopListeningRef = useRef<() => void>(() => undefined);
   handlersRef.current = handlers;
   enabledRef.current = enabled;
+  localeRef.current = locale;
 
   const clearRestart = useCallback(() => {
     if (restartTimerRef.current != null) {
@@ -81,20 +91,14 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
       setUnavailable(true);
       return;
     }
+    const activeLocale = localeRef.current;
     try {
       SpeechRecognition.start({
-        lang: 'fr-FR',
+        lang: VOICE_SPEECH_LANG[activeLocale],
         interimResults: false,
         continuous: Platform.OS === 'ios',
         addsPunctuation: false,
-        contextualStrings: [
-          'Suivant',
-          'Précédent',
-          'Instruction',
-          'Minuteur',
-          'étape suivante',
-          'étape précédente',
-        ],
+        contextualStrings: VOICE_CONTEXTUAL_STRINGS[activeLocale],
       });
     } catch {
       setUnavailable(true);
@@ -155,7 +159,7 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
       const transcript = event.results?.[0]?.transcript?.trim() ?? '';
       if (!transcript) return;
 
-      const command = matchCookingVoiceCommand(transcript);
+      const command = matchCookingVoiceCommand(transcript, localeRef.current);
       if (!command) return;
 
       const now = Date.now();
@@ -183,7 +187,7 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
       stopListeningRef.current();
       void Speech.stop().finally(() => {
         Speech.speak(text, {
-          language: 'fr-FR',
+          language: VOICE_SPEECH_LANG[localeRef.current],
           rate: 0.95,
           onDone: () => {
             speakingRef.current = false;
@@ -243,6 +247,8 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
           return;
         }
         setUnavailable(false);
+        // Restart so recognition language matches the current app locale.
+        stopListening();
         startListening();
       } catch {
         if (!cancelled) setUnavailable(true);
@@ -255,7 +261,7 @@ export function useCookingVoiceControl(enabled: boolean, handlers: VoiceHandlers
       void Speech.stop();
       stopListening();
     };
-  }, [enabled, startListening, stopListening]);
+  }, [enabled, locale, startListening, stopListening]);
 
   return { listening, unavailable };
 }

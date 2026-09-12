@@ -1,6 +1,8 @@
+import type { AppLocale } from '@/i18n/types';
+
 export type CookingVoiceCommand = 'next' | 'prev' | 'instruction' | 'timer';
 
-/** Strip accents and punctuation for reliable French command matching. */
+/** Strip accents and punctuation for reliable command matching. */
 export function normalizeVoiceText(input: string): string {
   return input
     .toLowerCase()
@@ -11,7 +13,7 @@ export function normalizeVoiceText(input: string): string {
     .trim();
 }
 
-const COMMAND_PATTERNS: { command: CookingVoiceCommand; pattern: RegExp }[] = [
+const FR_PATTERNS: { command: CookingVoiceCommand; pattern: RegExp }[] = [
   {
     command: 'instruction',
     pattern:
@@ -31,15 +33,59 @@ const COMMAND_PATTERNS: { command: CookingVoiceCommand; pattern: RegExp }[] = [
   },
 ];
 
+const EN_PATTERNS: { command: CookingVoiceCommand; pattern: RegExp }[] = [
+  {
+    command: 'instruction',
+    pattern:
+      /\b(instruction|instructions)\b|\b(read)\b[\w\s]{0,24}\b(instruction|instructions|aloud|out\s+loud)\b|\bread\s+(it\s+)?(aloud|out\s+loud)\b/,
+  },
+  {
+    command: 'timer',
+    pattern: /\b(timer|timers)\b|\b(start|begin)\b[\w\s]{0,12}\btimer\b/,
+  },
+  {
+    command: 'prev',
+    pattern: /\b(previous|prev|back)\b|\b(previous|last)\s+step\b|\bgo\s+back\b/,
+  },
+  {
+    command: 'next',
+    pattern: /\b(next|continue)\b|\bnext\s+step\b/,
+  },
+];
+
+const PATTERNS_BY_LOCALE: Record<AppLocale, { command: CookingVoiceCommand; pattern: RegExp }[]> = {
+  fr: FR_PATTERNS,
+  en: EN_PATTERNS,
+};
+
+export const VOICE_SPEECH_LANG: Record<AppLocale, string> = {
+  fr: 'fr-FR',
+  en: 'en-US',
+};
+
+export const VOICE_CONTEXTUAL_STRINGS: Record<AppLocale, string[]> = {
+  fr: [
+    'Suivant',
+    'Précédent',
+    'Instruction',
+    'Minuteur',
+    'étape suivante',
+    'étape précédente',
+  ],
+  en: ['Next', 'Previous', 'Instruction', 'Timer', 'next step', 'previous step'],
+};
+
 /**
- * Match a short French cooking-mode phrase to one of the four MVP commands.
- * Accepts slightly longer natural variants when they clearly map to one command.
+ * Match a short cooking-mode phrase to one of the four MVP commands for the active locale.
  */
-export function matchCookingVoiceCommand(transcript: string): CookingVoiceCommand | null {
+export function matchCookingVoiceCommand(
+  transcript: string,
+  locale: AppLocale = 'fr',
+): CookingVoiceCommand | null {
   const text = normalizeVoiceText(transcript);
   if (!text) return null;
 
-  for (const entry of COMMAND_PATTERNS) {
+  for (const entry of PATTERNS_BY_LOCALE[locale] ?? PATTERNS_BY_LOCALE.fr) {
     if (entry.pattern.test(text)) return entry.command;
   }
   return null;

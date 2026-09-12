@@ -121,14 +121,13 @@ export const en: { [K in keyof FrTranslations]: string } = {
   'cook.timerResumeA11y': 'Resume timer',
   'cook.timerResetA11y': 'Reset timer',
   'cook.voiceHelpTitle': 'Voice commands',
-  // Keep spoken phrases in French — voice recognition MVP is FR-only.
-  'cook.voiceCmd.next': '« Suivant »',
+  'cook.voiceCmd.next': '“Next”',
   'cook.voiceCmd.nextMeaning': 'go to the next step',
-  'cook.voiceCmd.prev': '« Précédent »',
+  'cook.voiceCmd.prev': '“Previous”',
   'cook.voiceCmd.prevMeaning': 'go back to the previous step',
-  'cook.voiceCmd.instruction': '« Instruction »',
+  'cook.voiceCmd.instruction': '“Instruction”',
   'cook.voiceCmd.instructionMeaning': 'read the instruction aloud',
-  'cook.voiceCmd.timer': '« Minuteur »',
+  'cook.voiceCmd.timer': '“Timer”',
   'cook.voiceCmd.timerMeaning': 'start the timer',
 
   'complete.title': 'Congratulations! Enjoy your meal.',
