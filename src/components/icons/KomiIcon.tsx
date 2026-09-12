@@ -45,6 +45,8 @@ export const KomiIconAssets = {
   time: require('../../../assets/icons/time.svg'),
   price: require('../../../assets/icons/price.svg'),
   cook: require('../../../assets/icons/cook.svg'),
+  microphone: require('../../../assets/icons/microphone.svg'),
+  microphoneSelected: require('../../../assets/icons/microphone-selected.svg'),
 } as const;
 
 /** Intrinsic SVG sizes from Figma exports (width × height). */
@@ -58,6 +60,8 @@ export const KomiIconIntrinsic = {
   time: { width: 24, height: 24 },
   price: { width: 19, height: 24 },
   cook: { width: 21, height: 21 },
+  microphone: { width: 15, height: 24 },
+  microphoneSelected: { width: 16, height: 24 },
 } as const;
 
 /** Scale so the graphic’s height matches `visualHeight` (preserves aspect ratio). */

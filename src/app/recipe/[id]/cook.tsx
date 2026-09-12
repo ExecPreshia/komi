@@ -14,7 +14,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { KomiConfirmSheet } from '@/components/ui/KomiActionSheet';
-import { CookingVoiceHelpSheet } from '@/components/cooking/CookingVoiceHelpSheet';
+import { CookingVoiceHelpBubble } from '@/components/cooking/CookingVoiceHelpBubble';
+import {
+  KomiIcon,
+  KomiIconAssets,
+  KomiIconIntrinsic,
+  sizeByHeight,
+} from '@/components/icons/KomiIcon';
 import { Colors, Fonts, Radii, Shadows, Spacing } from '@/constants/theme';
 import { translate } from '@/i18n';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -30,6 +36,13 @@ type TimerMap = Record<string, number>;
 const PREV_BARE_PEEK = 14;
 const PREV_TIMER_PEEK = 52;
 const NEXT_PEEK = 48;
+/** Clear space between the `?` button and the help bubble caret tip. */
+const VOICE_HELP_BUBBLE_GAP = 8;
+/** Matches the upward overhang of the speech-bubble caret. */
+const VOICE_HELP_CARET_OVERHANG = 7;
+
+const MIC_ICON = sizeByHeight(KomiIconIntrinsic.microphone, 18);
+const MIC_ICON_SELECTED = sizeByHeight(KomiIconIntrinsic.microphoneSelected, 18);
 
 function stepInstructionSpeech(step: Step): string {
   const bodies = [...step.subSteps]
@@ -61,6 +74,10 @@ export default function CookingModeScreen() {
   const [quitOpen, setQuitOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [voiceHelpOpen, setVoiceHelpOpen] = useState(false);
+  const [helpBubbleTop, setHelpBubbleTop] = useState(0);
+  const [helpAnchorX, setHelpAnchorX] = useState(0);
+  const rootRef = useRef<View>(null);
+  const helpButtonRef = useRef<View>(null);
   const indexRef = useRef(0);
   const pausedRef = useRef(pausedIds);
   const stepsRef = useRef(steps);
@@ -76,6 +93,7 @@ export default function CookingModeScreen() {
     setPausedIds(new Set());
     completedFeedbackRef.current = new Set();
     setVoiceEnabled(false);
+    setVoiceHelpOpen(false);
   }, [recipe?.id]);
 
   useEffect(() => {
@@ -276,6 +294,31 @@ export default function CookingModeScreen() {
     });
   }
 
+  function measureHelpAnchor() {
+    const root = rootRef.current;
+    const helpButton = helpButtonRef.current;
+    if (!root || !helpButton) return;
+
+    root.measureInWindow((rootX, rootY) => {
+      helpButton.measureInWindow((x, y, width, height) => {
+        setHelpBubbleTop(y - rootY + height + VOICE_HELP_BUBBLE_GAP + VOICE_HELP_CARET_OVERHANG);
+        setHelpAnchorX(x - rootX + width / 2);
+      });
+    });
+  }
+
+  function toggleVoiceHelp() {
+    if (voiceHelpOpen) {
+      setVoiceHelpOpen(false);
+      return;
+    }
+    // Measure after the next frame so the button layout is settled.
+    requestAnimationFrame(() => {
+      measureHelpAnchor();
+      setVoiceHelpOpen(true);
+    });
+  }
+
   function quitCooking() {
     setQuitOpen(true);
   }
@@ -291,38 +334,55 @@ export default function CookingModeScreen() {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + Spacing.two }]}>
+    <View ref={rootRef} style={[styles.root, { paddingTop: insets.top + Spacing.two }]}>
       <View style={styles.topBar}>
         <Text style={styles.stepCounter}>
           {t('cook.stepCounter', { current: index + 1, total: steps.length })}
         </Text>
-        <View style={styles.topBarActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('cook.voiceHelpA11y')}
-            hitSlop={8}
-            onPress={() => setVoiceHelpOpen(true)}
-            style={styles.voiceHelpButton}>
-            <Text style={styles.voiceHelpLabel}>?</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              voiceEnabled ? t('cook.voiceDisableA11y') : t('cook.voiceEnableA11y')
-            }
-            accessibilityState={{ selected: voiceEnabled }}
-            hitSlop={8}
-            onPress={() => setVoiceEnabled((value) => !value)}
-            style={[
-              styles.voiceMicButton,
-              voiceEnabled && styles.voiceMicButtonActive,
-              voiceEnabled && voiceListening && styles.voiceMicButtonListening,
-            ]}>
-            <MicGlyph active={voiceEnabled} />
-          </Pressable>
-          <Pressable onPress={quitCooking} hitSlop={8} style={styles.quitButton}>
-            <Text style={styles.quitLabel}>{t('cook.quit')}</Text>
-          </Pressable>
+
+        <Pressable onPress={quitCooking} hitSlop={8} style={styles.quitButton}>
+          <Text style={styles.quitLabel}>{t('cook.quit')}</Text>
+        </Pressable>
+
+        <View pointerEvents="box-none" style={styles.voiceControls}>
+          <View style={styles.voiceMicSlot}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                voiceEnabled ? t('cook.voiceDisableA11y') : t('cook.voiceEnableA11y')
+              }
+              accessibilityState={{ selected: voiceEnabled }}
+              hitSlop={8}
+              onPress={() => setVoiceEnabled((value) => !value)}
+              style={[
+                styles.voiceMicButton,
+                voiceEnabled && styles.voiceMicButtonActive,
+                voiceEnabled && voiceListening && styles.voiceMicButtonListening,
+              ]}>
+              <KomiIcon
+                source={voiceEnabled ? KomiIconAssets.microphoneSelected : KomiIconAssets.microphone}
+                width={voiceEnabled ? MIC_ICON_SELECTED.width : MIC_ICON.width}
+                height={voiceEnabled ? MIC_ICON_SELECTED.height : MIC_ICON.height}
+              />
+            </Pressable>
+            <View
+              ref={helpButtonRef}
+              collapsable={false}
+              style={styles.voiceHelpSlot}
+              onLayout={() => {
+                if (voiceHelpOpen) measureHelpAnchor();
+              }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('cook.voiceHelpA11y')}
+                accessibilityState={{ expanded: voiceHelpOpen }}
+                hitSlop={8}
+                onPress={toggleVoiceHelp}
+                style={[styles.voiceHelpButton, voiceHelpOpen && styles.voiceHelpButtonOpen]}>
+                <Text style={styles.voiceHelpLabel}>?</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -528,30 +588,13 @@ export default function CookingModeScreen() {
         }}
       />
 
-      <CookingVoiceHelpSheet visible={voiceHelpOpen} onClose={() => setVoiceHelpOpen(false)} />
+      <CookingVoiceHelpBubble
+        visible={voiceHelpOpen}
+        top={helpBubbleTop}
+        anchorX={helpAnchorX}
+        onClose={() => setVoiceHelpOpen(false)}
+      />
     </View>
-  );
-}
-
-function MicGlyph({ active }: { active: boolean }) {
-  const color = active ? Colors.white : Colors.text;
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 3C10.3 3 9 4.3 9 6V11C9 12.7 10.3 14 12 14C13.7 14 15 12.7 15 11V6C15 4.3 13.7 3 12 3Z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M7 11C7 13.8 9.2 16 12 16C14.8 16 17 13.8 17 11"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-      <Path d="M12 16V20" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      <Path d="M9 20H15" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-    </Svg>
   );
 }
 
@@ -650,15 +693,28 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   topBar: {
+    zIndex: 22,
+    minHeight: 44,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
   },
-  topBarActions: {
-    flexDirection: 'row',
+  voiceControls: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
-    gap: Spacing.two,
+    justifyContent: 'center',
+  },
+  voiceMicSlot: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceHelpSlot: {
+    position: 'absolute',
+    left: 44 + Spacing.two,
+    top: (44 - 32) / 2,
   },
   stepCounter: {
     fontFamily: Fonts.bodyMedium,
@@ -666,8 +722,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   voiceHelpButton: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: Radii.pill,
     borderWidth: 1,
     borderColor: Colors.line,
@@ -675,14 +731,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  voiceHelpButtonOpen: {
+    borderColor: Colors.textMuted,
+  },
   voiceHelpLabel: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 15,
     color: Colors.text,
   },
   voiceMicButton: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: Radii.pill,
     borderWidth: 1,
     borderColor: Colors.line,
