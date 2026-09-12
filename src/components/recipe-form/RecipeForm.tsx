@@ -13,6 +13,7 @@ import type { KeyboardAwareScrollViewRef } from 'react-native-keyboard-controlle
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryField } from '@/components/recipe-form/CategoryField';
+import { TimerDurationInput } from '@/components/recipe-form/TimerDurationInput';
 import {
   createEmptyIngredient,
   createEmptyStep,
@@ -411,13 +412,10 @@ export function RecipeForm({
         )}
 
         <FieldLabel text={t('form.timerLabel')} />
-        <TextInput
-          value={formatTimerInput(item.timerSeconds)}
-          onChangeText={(text) => updateStep(item.id, { timerSeconds: parseTimerInput(text) })}
-          placeholder={t('form.timerPlaceholder')}
-          placeholderTextColor={Colors.textMuted}
-          keyboardType="numbers-and-punctuation"
-          style={[styles.input, styles.timerInput]}
+        <TimerDurationInput
+          key={item.id}
+          timerSeconds={item.timerSeconds}
+          onChange={(timerSeconds) => updateStep(item.id, { timerSeconds })}
         />
       </View>
     );
@@ -637,27 +635,6 @@ export function RecipeForm({
 
 function FieldLabel({ text }: { text: string }) {
   return <Text style={styles.fieldLabel}>{text}</Text>;
-}
-
-function formatTimerInput(seconds: number | null): string {
-  if (seconds == null || seconds <= 0) return '';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function parseTimerInput(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes(':')) {
-    const [m, s] = trimmed.split(':');
-    const minutes = Number(m.replace(/[^0-9]/g, '')) || 0;
-    const seconds = Number((s ?? '').replace(/[^0-9]/g, '')) || 0;
-    const total = minutes * 60 + seconds;
-    return total > 0 ? total : null;
-  }
-  const minutes = Number(trimmed.replace(/[^0-9]/g, ''));
-  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
 }
 
 const styles = StyleSheet.create({
@@ -898,12 +875,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 13,
     color: Colors.textMuted,
-  },
-  timerInput: {
-    width: 96,
-    textAlign: 'center',
-    backgroundColor: Colors.inputFill,
-    borderColor: Colors.inputFill,
   },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,

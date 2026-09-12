@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   ingredientName: {
-    fontFamily: Fonts.bodyMedium,
+    fontFamily: Fonts.bodyBold,
     fontSize: 15,
     color: Colors.text,
   },
