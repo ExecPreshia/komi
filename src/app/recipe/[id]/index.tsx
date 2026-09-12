@@ -37,7 +37,7 @@ import type { Difficulty, Recipe } from '@/types/recipe';
 import { formatCost, formatDifficulty, normalizeCostLevel } from '@/utils/format';
 import {
   formatCookingTimeLong,
-  formatScaledQuantity,
+  formatQuantityDecimal,
   groupIngredients,
   scaleQuantity,
 } from '@/utils/quantity';
@@ -427,7 +427,7 @@ function IngredientsPanel({
   shoppingDisabled: boolean;
   onAddToShopping: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   return (
     <View style={styles.ingredientsPanel}>
@@ -453,7 +453,7 @@ function IngredientsPanel({
             <View style={styles.ingredientCard}>
               {group.items.map((ingredient, index) => {
                 const scaled = scaleQuantity(ingredient.quantity, recipe.baseServings, servings);
-                const qtyLabel = formatScaledQuantity(scaled);
+                const qtyLabel = formatQuantityDecimal(scaled, locale);
                 const checked = checkedIds.has(ingredient.id);
                 const onShoppingList = shoppingIngredientIds.has(ingredient.id);
                 return (

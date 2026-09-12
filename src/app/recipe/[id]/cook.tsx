@@ -27,7 +27,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useCookingVoiceControl } from '@/hooks/useCookingVoiceControl';
 import { useKomiStore } from '@/store/komi-store';
 import type { Ingredient, Step } from '@/types/recipe';
-import { formatScaledQuantity, scaleQuantity } from '@/utils/quantity';
+import { formatQuantityDecimal, scaleQuantity } from '@/utils/quantity';
 import { playTimerCompleteFeedback } from '@/utils/timer-complete-feedback';
 import { formatCountdown } from '@/utils/timer';
 
@@ -57,7 +57,7 @@ function stepInstructionSpeech(step: Step): string {
 
 export default function CookingModeScreen() {
   useKeepAwake();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { id, servings: servingsParam } = useLocalSearchParams<{ id: string; servings?: string }>();
   const insets = useSafeAreaInsets();
   const recipe = useKomiStore((state) => state.recipes.find((item) => item.id === id));
@@ -463,8 +463,9 @@ export default function CookingModeScreen() {
             {linkedIngredients(current).length > 0 ? (
               <View style={styles.pills}>
                 {linkedIngredients(current).map((ingredient) => {
-                  const qty = formatScaledQuantity(
+                  const qty = formatQuantityDecimal(
                     scaleQuantity(ingredient.quantity, activeRecipe.baseServings, servings),
+                    locale,
                   );
                   const unit = ingredient.unit?.trim() ?? '';
                   const prefix = [qty, unit].filter(Boolean).join(' ');

@@ -36,6 +36,31 @@ export function formatScaledQuantity(quantity: number | null): string {
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
 }
 
+/**
+ * Decimal quantity label for Detail View (no fractions).
+ * Uses `,` for French and `.` for English.
+ */
+export function formatQuantityDecimal(
+  quantity: number | null,
+  locale: 'fr' | 'en' = 'fr',
+): string {
+  if (quantity == null) return '';
+  if (!Number.isFinite(quantity)) return '';
+
+  const value = Math.round(quantity * 1000) / 1000;
+  if (Number.isInteger(value)) return String(value);
+
+  let text = value
+    .toFixed(3)
+    .replace(/(\.\d*?[1-9])0+$/, '$1')
+    .replace(/\.0+$/, '');
+
+  if (locale === 'fr') {
+    text = text.replace('.', ',');
+  }
+  return text;
+}
+
 export type IngredientGroup = {
   category: string | null;
   items: Ingredient[];
