@@ -47,6 +47,11 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useKomiStore } from '@/store/komi-store';
 import type { CostLevel, Difficulty, Ingredient, Step } from '@/types/recipe';
 import { formatCost, normalizeTag } from '@/utils/format';
+import {
+  deletePersistedRecipePhoto,
+  persistRecipePhoto,
+  resolveRecipePhotoUri,
+} from '@/utils/recipe-photo';
 
 type RecipeFormProps = {
   initialValues: RecipeFormValues;
@@ -144,7 +149,14 @@ export function RecipeForm({
       quality: 0.85,
     });
     if (!result.canceled && result.assets[0]?.uri) {
-      update('photoUri', result.assets[0].uri);
+      try {
+        const relativePath = await persistRecipePhoto(result.assets[0].uri);
+        const previous = values.photoUri;
+        update('photoUri', relativePath);
+        void deletePersistedRecipePhoto(previous);
+      } catch {
+        Alert.alert(t('form.photoLabel'), t('form.photoSaveError'));
+      }
     }
   }
 
@@ -158,7 +170,14 @@ export function RecipeForm({
       quality: 0.85,
     });
     if (!result.canceled && result.assets[0]?.uri) {
-      update('photoUri', result.assets[0].uri);
+      try {
+        const relativePath = await persistRecipePhoto(result.assets[0].uri);
+        const previous = values.photoUri;
+        update('photoUri', relativePath);
+        void deletePersistedRecipePhoto(previous);
+      } catch {
+        Alert.alert(t('form.photoLabel'), t('form.photoSaveError'));
+      }
     }
   }
 
@@ -449,10 +468,18 @@ export function RecipeForm({
         <Pressable style={styles.photoTap} onPress={pickPhoto}>
           {values.photoUri ? (
             <>
-              <Image source={{ uri: values.photoUri }} style={styles.photoImage} contentFit="cover" />
+              <Image
+                source={{ uri: resolveRecipePhotoUri(values.photoUri) ?? undefined }}
+                style={styles.photoImage}
+                contentFit="cover"
+              />
               <Pressable
                 style={styles.photoClear}
-                onPress={() => update('photoUri', null)}
+                onPress={() => {
+                  const previous = values.photoUri;
+                  update('photoUri', null);
+                  void deletePersistedRecipePhoto(previous);
+                }}
                 hitSlop={8}>
                 <Text style={styles.photoClearText}>{t('form.photoRemove')}</Text>
               </Pressable>

@@ -41,6 +41,7 @@ import {
   groupIngredients,
   scaleQuantity,
 } from '@/utils/quantity';
+import { resolveRecipePhotoUri, copyPersistedRecipePhoto, deletePersistedRecipePhoto } from '@/utils/recipe-photo';
 
 type DetailTab = 'ingredients' | 'preparation';
 
@@ -153,15 +154,26 @@ export default function RecipeDetailScreen() {
   }
 
   function confirmDelete() {
+    void deletePersistedRecipePhoto(currentRecipe.photoUri);
     deleteRecipe(currentRecipe.id);
     showKomiToast(t('detail.toastDeleted'));
     router.replace('/' as Href);
   }
 
-  function handleDuplicate() {
+  async function handleDuplicate() {
     setMenuOpen(false);
     const copy = duplicateRecipe(currentRecipe.id);
     if (!copy) return;
+    if (copy.photoUri) {
+      try {
+        const duplicatedPhoto = await copyPersistedRecipePhoto(copy.photoUri);
+        if (duplicatedPhoto) {
+          updateRecipe(copy.id, { photoUri: duplicatedPhoto });
+        }
+      } catch {
+        // Keep shared path if copy fails — photo may still display.
+      }
+    }
     showKomiToast(t('detail.toastDuplicated'));
   }
 
@@ -195,6 +207,7 @@ export default function RecipeDetailScreen() {
   const cookFooterClearance = footerPadding + 52 + Spacing.four;
   const missingShoppingCount = missingShoppingIngredients.length;
   const shoppingDisabled = missingShoppingCount === 0;
+  const heroPhotoUri = resolveRecipePhotoUri(recipe.photoUri);
 
   return (
     <View style={styles.root}>
@@ -205,8 +218,8 @@ export default function RecipeDetailScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
-          {recipe.photoUri ? (
-            <Image source={{ uri: recipe.photoUri }} style={styles.heroImage} contentFit="cover" />
+          {heroPhotoUri ? (
+            <Image source={{ uri: heroPhotoUri }} style={styles.heroImage} contentFit="cover" />
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
               <Text style={styles.heroPlaceholderText}>{t('common.noPhoto')}</Text>

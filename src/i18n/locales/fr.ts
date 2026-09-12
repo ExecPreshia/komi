@@ -160,6 +160,7 @@ export const fr = {
   'form.photoSheetTitle': 'Photo de la recette',
   'form.photoGallery': 'Galerie',
   'form.photoCamera': 'Appareil photo',
+  'form.photoSaveError': 'Impossible d’enregistrer la photo. Réessayez.',
   'form.timeLabel': 'Temps (min)',
   'form.timePlaceholder': 'Ex : 30',
   'form.servingsLabel': 'Portions',

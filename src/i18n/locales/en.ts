@@ -158,6 +158,7 @@ export const en: { [K in keyof FrTranslations]: string } = {
   'form.photoSheetTitle': 'Recipe photo',
   'form.photoGallery': 'Photo library',
   'form.photoCamera': 'Camera',
+  'form.photoSaveError': 'Could not save the photo. Please try again.',
   'form.timeLabel': 'Time (min)',
   'form.timePlaceholder': 'e.g. 30',
   'form.servingsLabel': 'Servings',

@@ -8,6 +8,7 @@ import { Colors, Radii, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { Recipe } from '@/types/recipe';
 import { formatCookingTime, formatCost, formatDifficulty, normalizeCostLevel } from '@/utils/format';
+import { resolveRecipePhotoUri } from '@/utils/recipe-photo';
 
 type RecipeListCardProps = {
   recipe: Recipe;
@@ -19,11 +20,13 @@ export function RecipeListCard({ recipe, onPress, onPressPin }: RecipeListCardPr
   const { t, locale } = useTranslation();
   const [contentWidth, setContentWidth] = useState(0);
 
+  const photoUri = resolveRecipePhotoUri(recipe.photoUri);
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
-        {recipe.photoUri ? (
-          <Image source={{ uri: recipe.photoUri }} style={styles.image} contentFit="cover" />
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.image} contentFit="cover" />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
             <Text style={styles.placeholderText}>{t('common.noPhoto')}</Text>
