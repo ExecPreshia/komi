@@ -91,18 +91,21 @@ export default function RecipeDetailScreen() {
     [recipe],
   );
 
-  const missingShoppingIngredients = useMemo(() => {
-    if (!recipe) return [];
-    // Already covered when actively on this recipe's shopping list (not completed).
-    const activeIngredientIds = new Set(
+  const activeShoppingIngredientIds = useMemo(() => {
+    if (!recipe) return new Set<string>();
+    return new Set(
       shoppingList
         .filter((item) => item.recipeId === recipe.id && item.ingredientId && !item.isChecked)
         .map((item) => item.ingredientId as string),
     );
+  }, [recipe, shoppingList]);
+
+  const missingShoppingIngredients = useMemo(() => {
+    if (!recipe) return [];
     return recipe.ingredients.filter(
-      (item) => !checkedIds.has(item.id) && !activeIngredientIds.has(item.id),
+      (item) => !checkedIds.has(item.id) && !activeShoppingIngredientIds.has(item.id),
     );
-  }, [recipe, shoppingList, checkedIds]);
+  }, [recipe, checkedIds, activeShoppingIngredientIds]);
 
   const goToIngredients = useCallback(() => setTab('ingredients'), []);
   const goToPreparation = useCallback(() => setTab('preparation'), []);
@@ -262,6 +265,7 @@ export default function RecipeDetailScreen() {
                   setServings={setServings}
                   groups={groups}
                   checkedIds={checkedIds}
+                  shoppingIngredientIds={activeShoppingIngredientIds}
                   onToggleChecked={toggleChecked}
                 />
               ) : (
@@ -415,6 +419,7 @@ function IngredientsPanel({
   setServings,
   groups,
   checkedIds,
+  shoppingIngredientIds,
   onToggleChecked,
 }: {
   recipe: Recipe;
@@ -422,6 +427,7 @@ function IngredientsPanel({
   setServings: (value: number) => void;
   groups: ReturnType<typeof groupIngredients>;
   checkedIds: Set<string>;
+  shoppingIngredientIds: Set<string>;
   onToggleChecked: (id: string) => void;
 }) {
   const { t } = useTranslation();
@@ -451,6 +457,7 @@ function IngredientsPanel({
               const scaled = scaleQuantity(ingredient.quantity, recipe.baseServings, servings);
               const qtyLabel = formatScaledQuantity(scaled);
               const checked = checkedIds.has(ingredient.id);
+              const onShoppingList = shoppingIngredientIds.has(ingredient.id);
               return (
                 <View key={ingredient.id}>
                   {index > 0 ? <View style={styles.ingredientDivider} /> : null}
@@ -466,8 +473,13 @@ function IngredientsPanel({
                         {ingredient.name}
                       </Text>
                     </View>
-                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                      {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                    <View style={styles.ingredientTrailing}>
+                      {onShoppingList ? (
+                        <CartGlyphIcon color={Colors.textMuted} size={16} />
+                      ) : null}
+                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                        {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                      </View>
                     </View>
                   </Pressable>
                 </View>
@@ -813,6 +825,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.two,
     flex: 1,
+  },
+  ingredientTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   ingredientQty: {
     fontFamily: Fonts.bodyMedium,
