@@ -192,6 +192,7 @@ export default function RecipeDetailScreen() {
   }
 
   const footerPadding = Math.max(insets.bottom, Spacing.three);
+  const cookFooterClearance = footerPadding + 52 + Spacing.four;
   const missingShoppingCount = missingShoppingIngredients.length;
   const shoppingDisabled = missingShoppingCount === 0;
 
@@ -199,8 +200,8 @@ export default function RecipeDetailScreen() {
     <View style={styles.root}>
       <AppKeyboardAwareScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: tab === 'ingredients' ? 160 : 110 }}
-        bottomOffset={tab === 'ingredients' ? 160 : 110}
+        contentContainerStyle={{ paddingBottom: cookFooterClearance }}
+        bottomOffset={cookFooterClearance}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
@@ -267,6 +268,9 @@ export default function RecipeDetailScreen() {
                   checkedIds={checkedIds}
                   shoppingIngredientIds={activeShoppingIngredientIds}
                   onToggleChecked={toggleChecked}
+                  missingShoppingCount={missingShoppingCount}
+                  shoppingDisabled={shoppingDisabled}
+                  onAddToShopping={handleAddToShopping}
                 />
               ) : (
                 <PreparationPanel
@@ -304,19 +308,6 @@ export default function RecipeDetailScreen() {
       </View>
 
       <ToastBottomAnchor id="recipe-detail-footer" style={[styles.footer, { paddingBottom: footerPadding }]}>
-        {tab === 'ingredients' ? (
-          <Pressable
-            style={[styles.shoppingButton, shoppingDisabled && styles.shoppingButtonDisabled]}
-            disabled={shoppingDisabled}
-            onPress={handleAddToShopping}>
-            <CartGlyphIcon />
-            <Text style={[styles.shoppingLabel, shoppingDisabled && styles.shoppingLabelDisabled]}>
-              {t(missingShoppingCount === 1 ? 'detail.addToShoppingOne' : 'detail.addToShopping', {
-                count: missingShoppingCount,
-              })}
-            </Text>
-          </Pressable>
-        ) : null}
         <Pressable
           style={styles.cookButton}
           onPress={() => {
@@ -421,6 +412,9 @@ function IngredientsPanel({
   checkedIds,
   shoppingIngredientIds,
   onToggleChecked,
+  missingShoppingCount,
+  shoppingDisabled,
+  onAddToShopping,
 }: {
   recipe: Recipe;
   servings: number;
@@ -429,65 +423,86 @@ function IngredientsPanel({
   checkedIds: Set<string>;
   shoppingIngredientIds: Set<string>;
   onToggleChecked: (id: string) => void;
+  missingShoppingCount: number;
+  shoppingDisabled: boolean;
+  onAddToShopping: () => void;
 }) {
   const { t } = useTranslation();
 
   return (
-    <View style={styles.panel}>
-      <View style={styles.portionsBar}>
-        <Text style={styles.portionsLabel}>{t('detail.portions')}</Text>
-        <View style={styles.portionsControls}>
-          <Pressable
-            style={styles.portionButton}
-            onPress={() => setServings(Math.max(1, servings - 1))}>
-            <Text style={styles.portionButtonLabel}>−</Text>
-          </Pressable>
-          <Text style={styles.portionsValue}>{servings}</Text>
-          <Pressable style={styles.portionButton} onPress={() => setServings(servings + 1)}>
-            <Text style={styles.portionButtonLabel}>+</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {groups.map((group) => (
-        <View key={group.category ?? 'main'} style={styles.groupBlock}>
-          {group.category ? <Text style={styles.groupTitle}>{group.category}</Text> : null}
-          <View style={styles.ingredientCard}>
-            {group.items.map((ingredient, index) => {
-              const scaled = scaleQuantity(ingredient.quantity, recipe.baseServings, servings);
-              const qtyLabel = formatScaledQuantity(scaled);
-              const checked = checkedIds.has(ingredient.id);
-              const onShoppingList = shoppingIngredientIds.has(ingredient.id);
-              return (
-                <View key={ingredient.id}>
-                  {index > 0 ? <View style={styles.ingredientDivider} /> : null}
-                  <Pressable style={styles.ingredientRow} onPress={() => onToggleChecked(ingredient.id)}>
-                    <View style={styles.ingredientLeft}>
-                      {qtyLabel ? <Text style={styles.ingredientQty}>{qtyLabel}</Text> : null}
-                      {ingredient.unit ? (
-                        <View style={styles.unitPill}>
-                          <Text style={styles.unitPillLabel}>{ingredient.unit}</Text>
-                        </View>
-                      ) : null}
-                      <Text style={[styles.ingredientName, checked && styles.ingredientChecked]}>
-                        {ingredient.name}
-                      </Text>
-                    </View>
-                    <View style={styles.ingredientTrailing}>
-                      {onShoppingList ? (
-                        <CartGlyphIcon color={Colors.textMuted} size={16} />
-                      ) : null}
-                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                        {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
-                      </View>
-                    </View>
-                  </Pressable>
-                </View>
-              );
-            })}
+    <View style={styles.ingredientsPanel}>
+      <View style={styles.ingredientsStack}>
+        <View style={styles.portionsBar}>
+          <Text style={styles.portionsLabel}>{t('detail.portions')}</Text>
+          <View style={styles.portionsControls}>
+            <Pressable
+              style={styles.portionButton}
+              onPress={() => setServings(Math.max(1, servings - 1))}>
+              <Text style={styles.portionButtonLabel}>−</Text>
+            </Pressable>
+            <Text style={styles.portionsValue}>{servings}</Text>
+            <Pressable style={styles.portionButton} onPress={() => setServings(servings + 1)}>
+              <Text style={styles.portionButtonLabel}>+</Text>
+            </Pressable>
           </View>
         </View>
-      ))}
+
+        {groups.map((group) => (
+          <View key={group.category ?? 'main'} style={styles.groupBlock}>
+            {group.category ? <Text style={styles.groupTitle}>{group.category}</Text> : null}
+            <View style={styles.ingredientCard}>
+              {group.items.map((ingredient, index) => {
+                const scaled = scaleQuantity(ingredient.quantity, recipe.baseServings, servings);
+                const qtyLabel = formatScaledQuantity(scaled);
+                const checked = checkedIds.has(ingredient.id);
+                const onShoppingList = shoppingIngredientIds.has(ingredient.id);
+                return (
+                  <View key={ingredient.id}>
+                    {index > 0 ? <View style={styles.ingredientDivider} /> : null}
+                    <Pressable style={styles.ingredientRow} onPress={() => onToggleChecked(ingredient.id)}>
+                      <View style={styles.ingredientLeft}>
+                        {qtyLabel ? <Text style={styles.ingredientQty}>{qtyLabel}</Text> : null}
+                        {ingredient.unit ? (
+                          <View style={styles.unitPill}>
+                            <Text style={styles.unitPillLabel}>{ingredient.unit}</Text>
+                          </View>
+                        ) : null}
+                        <Text style={[styles.ingredientName, checked && styles.ingredientChecked]}>
+                          {ingredient.name}
+                        </Text>
+                      </View>
+                      <View style={styles.ingredientTrailing}>
+                        {onShoppingList ? (
+                          <CartGlyphIcon color={Colors.textMuted} size={16} />
+                        ) : null}
+                        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                          {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                        </View>
+                      </View>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <Pressable
+        style={[
+          styles.shoppingButton,
+          styles.shoppingListCta,
+          shoppingDisabled && styles.shoppingButtonDisabled,
+        ]}
+        disabled={shoppingDisabled}
+        onPress={onAddToShopping}>
+        <CartGlyphIcon />
+        <Text style={[styles.shoppingLabel, shoppingDisabled && styles.shoppingLabelDisabled]}>
+          {t(missingShoppingCount === 1 ? 'detail.addToShoppingOne' : 'detail.addToShopping', {
+            count: missingShoppingCount,
+          })}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -753,6 +768,15 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
+  },
+  ingredientsPanel: {
+    paddingTop: Spacing.three,
+  },
+  ingredientsStack: {
+    gap: Spacing.three,
+  },
+  shoppingListCta: {
+    marginTop: Spacing.five,
   },
   portionsBar: {
     flexDirection: 'row',
