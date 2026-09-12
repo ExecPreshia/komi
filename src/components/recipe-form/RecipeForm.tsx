@@ -246,7 +246,7 @@ export function RecipeForm({
         <ReorderDragHandle>
           <View
             hitSlop={8}
-            style={styles.dragHandle}
+            style={[styles.dragHandle, styles.ingredientAction]}
             accessibilityLabel={t('form.reorderIngredientA11y')}>
             <DragHandleIcon color={Colors.accent} />
           </View>
@@ -310,7 +310,7 @@ export function RecipeForm({
               ),
             }));
           }}
-          style={styles.trashBtn}>
+          style={[styles.trashBtn, styles.ingredientAction]}>
           <TrashIcon />
         </Pressable>
       </View>
@@ -327,7 +327,7 @@ export function RecipeForm({
           <ReorderDragHandle>
             <View
               hitSlop={8}
-              style={styles.dragHandle}
+              style={[styles.dragHandle, styles.stepAction]}
               accessibilityLabel={t('form.reorderStepA11y')}>
               <DragHandleIcon color={Colors.accent} />
             </View>
@@ -350,7 +350,7 @@ export function RecipeForm({
                 ),
               }))
             }
-            style={styles.trashBtn}>
+            style={[styles.trashBtn, styles.stepAction]}>
             <TrashIcon />
           </Pressable>
         </View>
@@ -826,8 +826,15 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   dragHandle: {
-    paddingTop: Spacing.five,
     paddingHorizontal: Spacing.one,
+  },
+  /** Optical align with INGREDIENT label top (label has marginTop + font metrics). */
+  ingredientAction: {
+    paddingTop: Spacing.three,
+  },
+  /** Optical align with the Étape title field top edge. */
+  stepAction: {
+    paddingTop: Spacing.one,
   },
   ingredientFields: {
     flex: 1,
@@ -842,7 +849,6 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   trashBtn: {
-    paddingTop: Spacing.five,
     paddingHorizontal: Spacing.one,
   },
   dashedAdd: {
@@ -873,7 +879,7 @@ const styles = StyleSheet.create({
   },
   stepHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.two,
   },
   stepTitleInput: {

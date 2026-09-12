@@ -12,7 +12,17 @@ import {
   type TextInput as TextInputType,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInLeft,
+  FadeInRight,
+  FadeOutLeft,
+  FadeOutRight,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppKeyboardAwareScrollView } from '@/components/ui/AppKeyboardAwareScrollView';
@@ -45,6 +55,13 @@ import { resolveRecipePhotoUri, copyPersistedRecipePhoto, deletePersistedRecipeP
 
 type DetailTab = 'ingredients' | 'preparation';
 
+const TAB_UNDERLINE_WIDTH = 42;
+const TAB_TRANSITION_MS = 220;
+/** Room for Shadows.card (radius 12, offset Y 7) inside transformed enter/exit views. */
+const TAB_PANEL_SHADOW_GUTTER_X = 12;
+const TAB_PANEL_SHADOW_GUTTER_BOTTOM = 20;
+const tabTransitionEasing = Easing.out(Easing.cubic);
+
 function difficultyLevel(value: Difficulty): 1 | 2 | 3 {
   if (value === 'moyen') return 2;
   if (value === 'difficile') return 3;
@@ -64,10 +81,50 @@ export default function RecipeDetailScreen() {
 
   const [tab, setTab] = useState<DetailTab>('ingredients');
   const [servings, setServings] = useState(2);
+  const [tabLayouts, setTabLayouts] = useState<
+    Partial<Record<DetailTab, { x: number; width: number }>>
+  >({});
+  const tabUnderlineX = useSharedValue(0);
+  const hasAnimatedTab = useRef(false);
+  const skipTabEnterAnimation = useRef(true);
 
   useEffect(() => {
     if (recipe) setServings(recipe.baseServings || 2);
   }, [recipe?.id, recipe?.baseServings]);
+
+  const setTabLayout = useCallback((key: DetailTab, x: number, width: number) => {
+    setTabLayouts((current) => {
+      const prev = current[key];
+      if (prev && Math.abs(prev.x - x) < 0.5 && Math.abs(prev.width - width) < 0.5) {
+        return current;
+      }
+      return { ...current, [key]: { x, width } };
+    });
+  }, []);
+
+  useEffect(() => {
+    const layout = tabLayouts[tab];
+    if (!layout) return;
+    const nextX = layout.x + layout.width / 2 - TAB_UNDERLINE_WIDTH / 2;
+    if (!hasAnimatedTab.current) {
+      tabUnderlineX.value = nextX;
+      hasAnimatedTab.current = true;
+      return;
+    }
+    tabUnderlineX.value = withTiming(nextX, {
+      duration: TAB_TRANSITION_MS,
+      easing: tabTransitionEasing,
+    });
+  }, [tab, tabLayouts, tabUnderlineX]);
+
+  const selectTab = useCallback((next: DetailTab) => {
+    skipTabEnterAnimation.current = false;
+    setTab(next);
+  }, []);
+
+  const tabUnderlineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tabUnderlineX.value }],
+  }));
 
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState(false);
@@ -85,6 +142,8 @@ export default function RecipeDetailScreen() {
     setTab('ingredients');
     setEditingNotes(false);
     setNotesDraft('');
+    hasAnimatedTab.current = false;
+    skipTabEnterAnimation.current = true;
   }, [recipe?.id]);
 
   const groups = useMemo(
@@ -108,8 +167,8 @@ export default function RecipeDetailScreen() {
     );
   }, [recipe, checkedIds, activeShoppingIngredientIds]);
 
-  const goToIngredients = useCallback(() => setTab('ingredients'), []);
-  const goToPreparation = useCallback(() => setTab('preparation'), []);
+  const goToIngredients = useCallback(() => selectTab('ingredients'), [selectTab]);
+  const goToPreparation = useCallback(() => selectTab('preparation'), [selectTab]);
 
   const tabSwipe = useMemo(
     () =>
@@ -192,7 +251,7 @@ export default function RecipeDetailScreen() {
 
   function openNotesEditor() {
     setMenuOpen(false);
-    setTab('preparation');
+    selectTab('preparation');
     setNotesDraft(currentRecipe.notes ?? '');
     setEditingNotes(true);
   }
@@ -254,18 +313,32 @@ export default function RecipeDetailScreen() {
 
           <View style={styles.tabs}>
             <View style={styles.tabsRow}>
-              <Pressable style={styles.tab} onPress={() => setTab('ingredients')}>
+              <Pressable
+                style={styles.tab}
+                onPress={() => selectTab('ingredients')}
+                onLayout={(event) => {
+                  const { x, width } = event.nativeEvent.layout;
+                  setTabLayout('ingredients', x, width);
+                }}>
                 <Text style={[styles.tabLabel, tab === 'ingredients' && styles.tabLabelActive]}>
                   {t('detail.tabIngredients')}
                 </Text>
-                {tab === 'ingredients' ? <View style={styles.tabUnderline} /> : null}
               </Pressable>
-              <Pressable style={styles.tab} onPress={() => setTab('preparation')}>
+              <Pressable
+                style={styles.tab}
+                onPress={() => selectTab('preparation')}
+                onLayout={(event) => {
+                  const { x, width } = event.nativeEvent.layout;
+                  setTabLayout('preparation', x, width);
+                }}>
                 <Text style={[styles.tabLabel, tab === 'preparation' && styles.tabLabelActive]}>
                   {t('detail.tabPreparation')}
                 </Text>
-                {tab === 'preparation' ? <View style={styles.tabUnderline} /> : null}
               </Pressable>
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.tabUnderline, tabUnderlineStyle]}
+              />
             </View>
             <View style={styles.tabsBottomLine} />
           </View>
@@ -273,27 +346,47 @@ export default function RecipeDetailScreen() {
           <GestureDetector gesture={tabSwipe}>
             <View>
               {tab === 'ingredients' ? (
-                <IngredientsPanel
-                  recipe={recipe}
-                  servings={servings}
-                  setServings={setServings}
-                  groups={groups}
-                  checkedIds={checkedIds}
-                  shoppingIngredientIds={activeShoppingIngredientIds}
-                  onToggleChecked={toggleChecked}
-                  missingShoppingCount={missingShoppingCount}
-                  shoppingDisabled={shoppingDisabled}
-                  onAddToShopping={handleAddToShopping}
-                />
+                <Animated.View
+                  key="ingredients"
+                  style={styles.tabPanelAnimated}
+                  shouldRasterizeIOS
+                  renderToHardwareTextureAndroid
+                  entering={
+                    skipTabEnterAnimation.current
+                      ? undefined
+                      : FadeInLeft.duration(TAB_TRANSITION_MS).easing(tabTransitionEasing)
+                  }
+                  exiting={FadeOutLeft.duration(TAB_TRANSITION_MS).easing(tabTransitionEasing)}>
+                  <IngredientsPanel
+                    recipe={recipe}
+                    servings={servings}
+                    setServings={setServings}
+                    groups={groups}
+                    checkedIds={checkedIds}
+                    shoppingIngredientIds={activeShoppingIngredientIds}
+                    onToggleChecked={toggleChecked}
+                    missingShoppingCount={missingShoppingCount}
+                    shoppingDisabled={shoppingDisabled}
+                    onAddToShopping={handleAddToShopping}
+                  />
+                </Animated.View>
               ) : (
-                <PreparationPanel
-                  recipe={recipe}
-                  editingNotes={editingNotes}
-                  notesDraft={notesDraft}
-                  onChangeNotes={setNotesDraft}
-                  onSaveNotes={saveNotes}
-                  onCancelNotes={() => setEditingNotes(false)}
-                />
+                <Animated.View
+                  key="preparation"
+                  style={styles.tabPanelAnimated}
+                  shouldRasterizeIOS
+                  renderToHardwareTextureAndroid
+                  entering={FadeInRight.duration(TAB_TRANSITION_MS).easing(tabTransitionEasing)}
+                  exiting={FadeOutRight.duration(TAB_TRANSITION_MS).easing(tabTransitionEasing)}>
+                  <PreparationPanel
+                    recipe={recipe}
+                    editingNotes={editingNotes}
+                    notesDraft={notesDraft}
+                    onChangeNotes={setNotesDraft}
+                    onSaveNotes={saveNotes}
+                    onCancelNotes={() => setEditingNotes(false)}
+                  />
+                </Animated.View>
               )}
             </View>
           </GestureDetector>
@@ -755,6 +848,7 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   tabsRow: {
+    position: 'relative',
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingTop: Spacing.three,
@@ -776,15 +870,26 @@ const styles = StyleSheet.create({
   },
   tabUnderline: {
     position: 'absolute',
+    left: 0,
     bottom: 0,
     height: 3,
-    width: 42,
+    width: TAB_UNDERLINE_WIDTH,
     borderRadius: 2,
     backgroundColor: Colors.text,
   },
   tabsBottomLine: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.line,
+  },
+  /**
+   * Enter/exit transforms clip descendants on Android. Negative margin + matching
+   * padding keeps panel layout identical while giving Shadows.card room to draw.
+   */
+  tabPanelAnimated: {
+    marginHorizontal: -TAB_PANEL_SHADOW_GUTTER_X,
+    paddingHorizontal: TAB_PANEL_SHADOW_GUTTER_X,
+    marginBottom: -TAB_PANEL_SHADOW_GUTTER_BOTTOM,
+    paddingBottom: TAB_PANEL_SHADOW_GUTTER_BOTTOM,
   },
   panel: {
     gap: Spacing.three,
