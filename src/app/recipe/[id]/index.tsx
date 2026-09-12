@@ -459,7 +459,13 @@ function IngredientsPanel({
                 return (
                   <View key={ingredient.id}>
                     {index > 0 ? <View style={styles.ingredientDivider} /> : null}
-                    <Pressable style={styles.ingredientRow} onPress={() => onToggleChecked(ingredient.id)}>
+                    <Pressable
+                      style={styles.ingredientRow}
+                      disabled={onShoppingList}
+                      onPress={() => {
+                        if (onShoppingList) return;
+                        onToggleChecked(ingredient.id);
+                      }}>
                       <View style={styles.ingredientLeft}>
                         {qtyLabel ? <Text style={styles.ingredientQty}>{qtyLabel}</Text> : null}
                         {ingredient.unit ? (
@@ -467,18 +473,21 @@ function IngredientsPanel({
                             <Text style={styles.unitPillLabel}>{ingredient.unit}</Text>
                           </View>
                         ) : null}
-                        <Text style={[styles.ingredientName, checked && styles.ingredientChecked]}>
+                        <Text
+                          style={[
+                            styles.ingredientName,
+                            !onShoppingList && checked && styles.ingredientChecked,
+                          ]}>
                           {ingredient.name}
                         </Text>
                       </View>
-                      <View style={styles.ingredientTrailing}>
-                        {onShoppingList ? (
-                          <CartGlyphIcon color={Colors.textMuted} size={16} />
-                        ) : null}
+                      {onShoppingList ? (
+                        <CartGlyphIcon color={Colors.textMuted} size={16} />
+                      ) : (
                         <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
                           {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
                         </View>
-                      </View>
+                      )}
                     </Pressable>
                   </View>
                 );
@@ -849,11 +858,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.two,
     flex: 1,
-  },
-  ingredientTrailing: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
   },
   ingredientQty: {
     fontFamily: Fonts.bodyMedium,

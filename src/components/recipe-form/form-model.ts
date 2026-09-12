@@ -123,10 +123,20 @@ export function renumberStepTitles(steps: Step[], locale: AppLocale): Step[] {
 }
 
 export function parseOptionalNumber(value: string): number | null {
-  const trimmed = value.trim().replace(',', '.');
-  if (!trimmed) return null;
+  const trimmed = value.trim().replace(/,/g, '.');
+  if (!trimmed || trimmed === '.') return null;
   const num = Number(trimmed);
   return Number.isFinite(num) ? num : null;
+}
+
+/** Digits with at most one decimal separator (`,` or `.`). */
+export function isQuantityInputText(value: string): boolean {
+  return value === '' || /^\d*[.,]?\d*$/.test(value);
+}
+
+export function formatQuantityInputValue(quantity: number | null): string {
+  if (quantity == null) return '';
+  return String(quantity);
 }
 
 export function validateRecipeForm(values: RecipeFormValues): TranslationKey | null {

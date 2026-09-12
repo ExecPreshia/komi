@@ -20,6 +20,8 @@ import {
   reindexItems,
   renumberStepTitles,
   parseOptionalNumber,
+  isQuantityInputText,
+  formatQuantityInputValue,
   type RecipeFormValues,
   sanitizeFormValues,
   validateRecipeForm,
@@ -76,6 +78,13 @@ export function RecipeForm({
   const [servingsDraft, setServingsDraft] = useState(
     initialValues.baseServings > 0 ? String(initialValues.baseServings) : '',
   );
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>(() => {
+    const drafts: Record<string, string> = {};
+    for (const item of initialValues.ingredients) {
+      drafts[item.id] = formatQuantityInputValue(item.quantity);
+    }
+    return drafts;
+  });
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
   const [incompleteOpen, setIncompleteOpen] = useState(false);
@@ -175,6 +184,12 @@ export function RecipeForm({
     }));
   }
 
+  function setIngredientQuantityText(id: string, text: string) {
+    if (!isQuantityInputText(text)) return;
+    setQuantityDrafts((current) => ({ ...current, [id]: text }));
+    updateIngredient(id, { quantity: parseOptionalNumber(text) });
+  }
+
   function updateStep(id: string, patch: Partial<Step>) {
     setValues((current) => ({
       ...current,
@@ -230,10 +245,8 @@ export function RecipeForm({
             <View style={styles.qtyField}>
               <FieldLabel text={t('form.qtyLabel')} />
               <TextInput
-                value={item.quantity == null ? '' : String(item.quantity)}
-                onChangeText={(text) =>
-                  updateIngredient(item.id, { quantity: parseOptionalNumber(text) })
-                }
+                value={quantityDrafts[item.id] ?? formatQuantityInputValue(item.quantity)}
+                onChangeText={(text) => setIngredientQuantityText(item.id, text)}
                 keyboardType="decimal-pad"
                 placeholder={t('form.qtyPlaceholder')}
                 placeholderTextColor={Colors.textMuted}
@@ -264,14 +277,19 @@ export function RecipeForm({
         </View>
         <Pressable
           accessibilityLabel={t('form.deleteIngredientA11y')}
-          onPress={() =>
+          onPress={() => {
+            setQuantityDrafts((current) => {
+              const next = { ...current };
+              delete next[item.id];
+              return next;
+            });
             setValues((current) => ({
               ...current,
               ingredients: reindexItems(
                 current.ingredients.filter((entry) => entry.id !== item.id),
               ),
-            }))
-          }
+            }));
+          }}
           style={styles.trashBtn}>
           <TrashIcon />
         </Pressable>
@@ -556,12 +574,11 @@ export function RecipeForm({
         />
         <Pressable
           style={styles.dashedAdd}
-          onPress={() =>
-            update('ingredients', [
-              ...values.ingredients,
-              createEmptyIngredient(values.ingredients.length),
-            ])
-          }>
+          onPress={() => {
+            const ingredient = createEmptyIngredient(values.ingredients.length);
+            setQuantityDrafts((current) => ({ ...current, [ingredient.id]: '' }));
+            update('ingredients', [...values.ingredients, ingredient]);
+          }}>
           <Text style={styles.dashedAddLabel}>{t('form.addIngredient')}</Text>
         </Pressable>
 
